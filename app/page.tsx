@@ -25,6 +25,7 @@ export default function Home() {
   const workerRef = useRef<Worker | null>(null);
   const colorChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     // Initialize worker
@@ -139,9 +140,71 @@ export default function Home() {
     return URL.createObjectURL(blob);
   }, [backgroundColor, blurIntensity]);
 
+  const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const file = files[0];
+
+    if (!file) return;
+
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    // Create URL for the original image
+    const imageUrl = URL.createObjectURL(file);
+    setOriginalImage(imageUrl);
+    setProcessedImage(null);
+    setProcessedImageNoBg(null);
+    setIsProcessing(true);
+
+    // Send image to worker for processing
+    workerRef.current?.postMessage({ imageUrl });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
 
     // Create URL for the original image
     const imageUrl = URL.createObjectURL(file);
@@ -285,16 +348,35 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen p-8">
-      <main className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">Background Remover</h1>
+    <div className="min-h-screen py-16 px-4 bg-[#FAFAFA]">
+      <main className="max-w-3xl mx-auto">
+        <h1 className="text-[28px] font-semibold mb-12 text-center tracking-tight">Background Remover</h1>
         
-        <div className="flex flex-col items-center gap-8">
-          <div className="w-full max-w-md">
-            <label className="block w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
-              <div className="text-center">
-                <p className="text-lg font-medium">Upload Image</p>
-                <p className="text-sm text-gray-500">Click to select or drag and drop</p>
+        <div className="flex flex-col items-center gap-12">
+          <div className="w-full">
+            <label 
+              className={`block w-full p-16 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 bg-white
+                ${isDragging ? 'border-[#4F46E5] bg-[#F5F7FF]' : 'border-gray-300 hover:border-[#4F46E5]'}`}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="text-center flex flex-col items-center gap-6">
+                <div className={`w-16 h-16 transition-colors duration-200 ${isDragging ? 'text-[#4F46E5]' : 'text-gray-400'}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-full h-full">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="space-y-2">
+                  <p className={`text-[20px] font-medium tracking-tight transition-colors duration-200 ${isDragging ? 'text-[#4F46E5]' : 'text-gray-900'}`}>
+                    {isDragging ? 'Drop your image here' : 'Drag and drop your image here'}
+                  </p>
+                  <p className="text-[14px] text-gray-600">Supports JPG, PNG and WebP (max 5MB)</p>
+                </div>
+                <button className="mt-2 px-8 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors">
+                  Select Image
+                </button>
               </div>
               <input
                 type="file"
@@ -306,115 +388,115 @@ export default function Home() {
           </div>
 
           {isProcessing && (
-            <div className="text-center w-full max-w-md">
-              <p className="text-lg mb-2">{processingStep}</p>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+            <div className="text-center w-full">
+              <p className="text-[16px] font-medium mb-3">{processingStep}</p>
+              <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
                 <div 
-                  className="bg-blue-500 h-2.5 rounded-full transition-all duration-300" 
+                  className="bg-[#4F46E5] h-2 rounded-full transition-all duration-300" 
                   style={{ width: `${processingProgress}%` }}
                 ></div>
               </div>
-              <p className="text-sm text-gray-500">{processingProgress}% complete</p>
+              <p className="text-[14px] text-gray-600">{processingProgress}% complete</p>
             </div>
           )}
 
           {processedImage && (
-            <div className="flex flex-col gap-4 items-center">
-              <div className="flex gap-4">
+            <div className="flex flex-col gap-6 items-center w-full">
+              <div className="flex gap-3 flex-wrap justify-center">
                 <button
                   onClick={() => handleBackgroundChange('none')}
-                  className={`px-4 py-2 rounded ${
+                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
                     backgroundOption === 'none'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
+                      ? 'bg-[#4F46E5] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   No Background
                 </button>
                 <button
                   onClick={() => handleBackgroundChange('blur')}
-                  className={`px-4 py-2 rounded ${
+                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
                     backgroundOption === 'blur'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
+                      ? 'bg-[#4F46E5] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Blurred Background
                 </button>
                 <button
                   onClick={() => handleBackgroundChange('bw')}
-                  className={`px-4 py-2 rounded ${
+                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
                     backgroundOption === 'bw'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
+                      ? 'bg-[#4F46E5] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Black & White Background
                 </button>
                 <button
                   onClick={() => handleBackgroundChange('color')}
-                  className={`px-4 py-2 rounded ${
+                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
                     backgroundOption === 'color'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
+                      ? 'bg-[#4F46E5] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Custom Color
                 </button>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-3 flex-wrap justify-center">
                 <button
                   onClick={() => setSelectionMode(selectionMode === 'foreground' ? 'none' : 'foreground')}
-                  className={`px-4 py-2 rounded ${
+                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
                     selectionMode === 'foreground'
                       ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Mark Foreground
                 </button>
                 <button
                   onClick={() => setSelectionMode(selectionMode === 'background' ? 'none' : 'background')}
-                  className={`px-4 py-2 rounded ${
+                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
                     selectionMode === 'background'
                       ? 'bg-red-500 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
-                }`}
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
                 >
                   Mark Background
                 </button>
                 <button
                   onClick={clearSelection}
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                  className="px-5 py-2.5 rounded-md text-[14px] font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
                 >
                   Clear Selection
                 </button>
                 <button
                   onClick={applySelection}
-                  className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+                  className="px-5 py-2.5 rounded-md text-[14px] font-medium bg-[#4F46E5] text-white hover:bg-[#4338CA]"
                 >
                   Apply Selection
                 </button>
               </div>
 
               {selectionMode !== 'none' && (
-                <div className="flex flex-col items-center gap-2 w-full max-w-md">
-                  <label className="text-sm font-medium">Brush Size: {brushSize}px</label>
+                <div className="flex flex-col items-center gap-3 w-full max-w-md">
+                  <label className="text-[14px] font-medium text-gray-700">Brush Size: {brushSize}px</label>
                   <input
                     type="range"
                     min="1"
                     max="50"
                     value={brushSize}
                     onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
               )}
               
               {backgroundOption === 'color' && (
                 <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium">Background Color:</label>
+                  <label className="text-[14px] font-medium text-gray-700">Background Color:</label>
                   <input
                     type="color"
                     value={backgroundColor}
@@ -425,25 +507,25 @@ export default function Home() {
               )}
 
               {backgroundOption === 'blur' && (
-                <div className="flex flex-col items-center gap-2 w-full max-w-md">
-                  <label className="text-sm font-medium">Blur Intensity: {blurIntensity}px</label>
+                <div className="flex flex-col items-center gap-3 w-full max-w-md">
+                  <label className="text-[14px] font-medium text-gray-700">Blur Intensity: {blurIntensity}px</label>
                   <input
                     type="range"
                     min="0"
                     max="50"
                     value={blurIntensity}
                     onChange={handleBlurChange}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
               )}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 w-full">
             {originalImage && (
               <div className="flex flex-col items-center">
-                <h2 className="text-xl font-semibold mb-4">Original Image</h2>
+                <h2 className="text-[16px] font-semibold mb-6">Original Image</h2>
                 <div className="relative w-full aspect-square">
                   <Image
                     src={originalImage}
@@ -457,7 +539,7 @@ export default function Home() {
 
             {processedImage && (
               <div className="flex flex-col items-center">
-                <h2 className="text-xl font-semibold mb-4">Processed Image</h2>
+                <h2 className="text-[16px] font-semibold mb-6">Processed Image</h2>
                 <div className="relative w-full aspect-square">
                   <Image
                     src={processedImage}
@@ -479,7 +561,7 @@ export default function Home() {
                 <a
                   href={processedImage}
                   download="processed-image.png"
-                  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                  className="mt-6 px-6 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors"
                 >
                   Download
                 </a>
