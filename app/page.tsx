@@ -160,22 +160,29 @@ export default function Home() {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (option === 'blur') {
-        // Draw original image
-        ctx.drawImage(originalImg, 0, 0);
-        
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) return;
+        // Step 1: Create and blur the background
+        const bgCanvas = document.createElement('canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        if (!bgCtx) return;
+        bgCanvas.width = canvas.width;
+        bgCanvas.height = canvas.height;
 
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
-        tempCtx.putImageData(imageData, 0, 0);
+        // Apply blur to the entire background
+        bgCtx.filter = `blur(${blurIntensity}px)`;
+        bgCtx.drawImage(originalImg, 0, 0);
+        bgCtx.filter = 'none';
 
-        // Apply blur effect with adjustable intensity
-        ctx.filter = `blur(${blurIntensity}px)`;
-        ctx.drawImage(tempCanvas, 0, 0);
-        ctx.filter = 'none';
+        // Step 2: Draw blurred background to main canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(bgCanvas, 0, 0);
+
+        // Step 3: Mask out the subject area (punch a hole)
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.drawImage(foregroundImg, 0, 0);
+
+        // Step 4: Restore blend mode and draw original subject
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(foregroundImg, 0, 0);
       } else if (option === 'bw') {
         // Draw original image
         ctx.drawImage(originalImg, 0, 0);
