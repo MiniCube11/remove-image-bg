@@ -94,67 +94,67 @@ export default function Home() {
       // For no background, just return the foreground image
       ctx.drawImage(foregroundImg, 0, 0);
     } else if (option === 'border') {
-      // Create the border effect
+      // Create temporary canvas for the border effect
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) return;
 
-      // First, find the bounds of the non-transparent pixels
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-      
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const alpha = data[(y * canvas.width + x) * 4 + 3];
-          if (alpha > 0) {
-            minX = Math.min(minX, x);
-            minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x);
-            maxY = Math.max(maxY, y);
-          }
-        }
-      }
-
-      // Calculate the dimensions and center of the actual content
-      const contentWidth = maxX - minX;
-      const contentHeight = maxY - minY;
-      const contentCenterX = minX + contentWidth / 2;
-      const contentCenterY = minY + contentHeight / 2;
-
-      // Set up the temporary canvas
+      // Set canvas dimensions
       tempCanvas.width = canvas.width;
       tempCanvas.height = canvas.height;
 
-      // Draw the foreground image
+      // Draw the foreground image to get its data
       tempCtx.drawImage(foregroundImg, 0, 0);
+      const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
 
-      // Create a path from non-transparent pixels
-      tempCtx.globalCompositeOperation = 'source-in';
-      tempCtx.fillStyle = borderColor;
-      tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+      // Create silhouette
+      const silhouette = new ImageData(tempCanvas.width, tempCanvas.height);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const alpha = imageData.data[i + 3];
+        if (alpha > 0) {
+          // Convert hex color to RGB
+          const r = parseInt(borderColor.slice(1, 3), 16);
+          const g = parseInt(borderColor.slice(3, 5), 16);
+          const b = parseInt(borderColor.slice(5, 7), 16);
+          
+          // Use the selected border color with full opacity
+          silhouette.data[i] = r;     // R
+          silhouette.data[i + 1] = g; // G
+          silhouette.data[i + 2] = b; // B
+          silhouette.data[i + 3] = 255; // A
+        }
+      }
 
       // Clear the main canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw the expanded border with shadow for depth
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-      ctx.shadowBlur = 1;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 1;
+      // Calculate border size based on image dimensions
+      const maxDimension = Math.max(canvas.width, canvas.height);
+      const scaledBorderSize = Math.max(4, Math.floor(borderSize * maxDimension / 1000));
 
-      // Scale from the content center
-      const scale = 1 + (borderSize / 100);
-      
-      ctx.translate(contentCenterX, contentCenterY);
-      ctx.scale(scale, scale);
-      ctx.translate(-contentCenterX, -contentCenterY);
-      
+      // Create offsets for the border effect
+      const offsets = [];
+      for (let angle = 0; angle < 360; angle += 45) {
+        const radian = (angle * Math.PI) / 180;
+        offsets.push([
+          Math.cos(radian) * scaledBorderSize,
+          Math.sin(radian) * scaledBorderSize
+        ]);
+      }
+
+      // Draw silhouette with offsets to create border
+      offsets.forEach(([dx, dy]) => {
+        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+        tempCtx.putImageData(silhouette, dx, dy);
+        ctx.drawImage(tempCanvas, 0, 0);
+      });
+
+      // Add slight blur for smoother border
+      ctx.filter = 'blur(1px)';
       ctx.drawImage(tempCanvas, 0, 0);
-      ctx.restore();
+      ctx.filter = 'none';
 
-      // Draw the original foreground image
+      // Draw the original foreground image on top
       ctx.drawImage(foregroundImg, 0, 0);
     } else {
       // Fill with background color first
