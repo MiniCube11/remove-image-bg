@@ -99,62 +99,60 @@ export default function Home() {
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) return;
 
-      // Set canvas dimensions
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
+      // Calculate border thickness (scaled based on the slider value)
+      const thickness = Math.max(1, Math.floor(borderSize / 8));
+      
+      // Set canvas dimensions with padding for the border
+      tempCanvas.width = canvas.width + thickness * 2;
+      tempCanvas.height = canvas.height + thickness * 2;
 
-      // Draw the foreground image to get its data
-      tempCtx.drawImage(foregroundImg, 0, 0);
-      const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      // Create a mask canvas for the border shape
+      const maskCanvas = document.createElement('canvas');
+      const maskCtx = maskCanvas.getContext('2d');
+      if (!maskCtx) return;
+      maskCanvas.width = tempCanvas.width;
+      maskCanvas.height = tempCanvas.height;
 
-      // Create silhouette
-      const silhouette = new ImageData(tempCanvas.width, tempCanvas.height);
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        const alpha = imageData.data[i + 3];
-        if (alpha > 0) {
-          // Convert hex color to RGB
-          const r = parseInt(borderColor.slice(1, 3), 16);
-          const g = parseInt(borderColor.slice(3, 5), 16);
-          const b = parseInt(borderColor.slice(5, 7), 16);
-          
-          // Use the selected border color with full opacity
-          silhouette.data[i] = r;     // R
-          silhouette.data[i + 1] = g; // G
-          silhouette.data[i + 2] = b; // B
-          silhouette.data[i + 3] = 255; // A
+      // Generate circular offsets for the border
+      const offsets: [number, number][] = [];
+      for (let x = -thickness; x <= thickness; x++) {
+        for (let y = -thickness; y <= thickness; y++) {
+          if (x * x + y * y <= thickness * thickness) {
+            offsets.push([x, y]);
+          }
         }
       }
+
+      // Draw the expanded shape in white to create a mask
+      maskCtx.fillStyle = '#ffffff';
+      offsets.forEach(([dx, dy]) => {
+        maskCtx.drawImage(foregroundImg, dx + thickness, dy + thickness);
+      });
+
+      // Clear the temporary canvas
+      tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // Fill the entire temporary canvas with the border color
+      tempCtx.fillStyle = borderColor;
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // Use the mask to cut out the border shape
+      tempCtx.globalCompositeOperation = 'destination-in';
+      tempCtx.drawImage(maskCanvas, 0, 0);
 
       // Clear the main canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Calculate border size based on image dimensions
-      const maxDimension = Math.max(canvas.width, canvas.height);
-      const scaledBorderSize = Math.max(4, Math.floor(borderSize * maxDimension / 1000));
+      // Draw the colored border
+      ctx.drawImage(
+        tempCanvas, 
+        -thickness, 
+        -thickness, 
+        tempCanvas.width, 
+        tempCanvas.height
+      );
 
-      // Create offsets for the border effect
-      const offsets = [];
-      for (let angle = 0; angle < 360; angle += 45) {
-        const radian = (angle * Math.PI) / 180;
-        offsets.push([
-          Math.cos(radian) * scaledBorderSize,
-          Math.sin(radian) * scaledBorderSize
-        ]);
-      }
-
-      // Draw silhouette with offsets to create border
-      offsets.forEach(([dx, dy]) => {
-        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-        tempCtx.putImageData(silhouette, dx, dy);
-        ctx.drawImage(tempCanvas, 0, 0);
-      });
-
-      // Add slight blur for smoother border
-      ctx.filter = 'blur(1px)';
-      ctx.drawImage(tempCanvas, 0, 0);
-      ctx.filter = 'none';
-
-      // Draw the original foreground image on top
+      // Draw the original image on top
       ctx.drawImage(foregroundImg, 0, 0);
     } else {
       // Fill with background color first
