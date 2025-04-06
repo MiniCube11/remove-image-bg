@@ -26,6 +26,7 @@ export default function Home() {
   const selectionCanvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
   const colorChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const borderChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,11 +62,14 @@ export default function Home() {
       }
     };
 
-    // Cleanup worker on unmount
+    // Cleanup worker and timeouts on unmount
     return () => {
       workerRef.current?.terminate();
       if (colorChangeTimeoutRef.current) {
         clearTimeout(colorChangeTimeoutRef.current);
+      }
+      if (borderChangeTimeoutRef.current) {
+        clearTimeout(borderChangeTimeoutRef.current);
       }
     };
   }, []);
@@ -424,6 +428,38 @@ export default function Home() {
     fileInputRef.current?.click();
   };
 
+  const handleBorderColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBorderColor(e.target.value);
+    
+    // Clear any existing timeout
+    if (colorChangeTimeoutRef.current) {
+      clearTimeout(colorChangeTimeoutRef.current);
+    }
+    
+    // Set a new timeout to debounce the color change
+    colorChangeTimeoutRef.current = setTimeout(() => {
+      if (backgroundOption === 'border') {
+        handleBackgroundChange('border');
+      }
+    }, 150); // 150ms debounce
+  };
+
+  const handleBorderSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBorderSize(Number(e.target.value));
+    
+    // Clear any existing timeout
+    if (borderChangeTimeoutRef.current) {
+      clearTimeout(borderChangeTimeoutRef.current);
+    }
+    
+    // Set a new timeout to debounce the border size change
+    borderChangeTimeoutRef.current = setTimeout(() => {
+      if (backgroundOption === 'border') {
+        handleBackgroundChange('border');
+      }
+    }, 150); // 150ms debounce
+  };
+
   return (
     <div className="min-h-screen py-16 px-4 bg-[#FAFAFA]">
       <main className="max-w-3xl mx-auto">
@@ -619,10 +655,7 @@ export default function Home() {
                     <input
                       type="color"
                       value={borderColor}
-                      onChange={(e) => {
-                        setBorderColor(e.target.value);
-                        handleBackgroundChange('border');
-                      }}
+                      onChange={handleBorderColorChange}
                       className="w-12 h-12 rounded cursor-pointer"
                     />
                   </div>
@@ -634,10 +667,7 @@ export default function Home() {
                       max="200"
                       step="5"
                       value={borderSize}
-                      onChange={(e) => {
-                        setBorderSize(Number(e.target.value));
-                        handleBackgroundChange('border');
-                      }}
+                      onChange={handleBorderSizeChange}
                       className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
