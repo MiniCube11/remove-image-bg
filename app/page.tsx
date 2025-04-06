@@ -9,6 +9,7 @@ type BackgroundOption = 'none' | 'blur' | 'bw';
 export default function Home() {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
+  const [processedImageNoBg, setProcessedImageNoBg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [backgroundOption, setBackgroundOption] = useState<BackgroundOption>('none');
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -30,38 +31,46 @@ export default function Home() {
     canvas.width = originalImg.width;
     canvas.height = originalImg.height;
 
-    // Draw original image
-    ctx.drawImage(originalImg, 0, 0);
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Apply background effect
-    if (option === 'blur') {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const tempCanvas = document.createElement('canvas');
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) return;
+    if (option === 'none') {
+      // For no background, just return the foreground image
+      ctx.drawImage(foregroundImg, 0, 0);
+    } else {
+      // Draw original image
+      ctx.drawImage(originalImg, 0, 0);
 
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      tempCtx.putImageData(imageData, 0, 0);
+      // Apply background effect
+      if (option === 'blur') {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
 
-      // Apply blur effect
-      ctx.filter = 'blur(10px)';
-      ctx.drawImage(tempCanvas, 0, 0);
-      ctx.filter = 'none';
-    } else if (option === 'bw') {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-        data[i] = avg;     // red
-        data[i + 1] = avg; // green
-        data[i + 2] = avg; // blue
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        tempCtx.putImageData(imageData, 0, 0);
+
+        // Apply blur effect
+        ctx.filter = 'blur(10px)';
+        ctx.drawImage(tempCanvas, 0, 0);
+        ctx.filter = 'none';
+      } else if (option === 'bw') {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          data[i] = avg;     // red
+          data[i + 1] = avg; // green
+          data[i + 2] = avg; // blue
+        }
+        ctx.putImageData(imageData, 0, 0);
       }
-      ctx.putImageData(imageData, 0, 0);
-    }
 
-    // Draw foreground on top
-    ctx.drawImage(foregroundImg, 0, 0);
+      // Draw foreground on top
+      ctx.drawImage(foregroundImg, 0, 0);
+    }
 
     // Convert to blob and create URL
     const blob = await new Promise<Blob>((resolve) => {
@@ -80,12 +89,14 @@ export default function Home() {
     const imageUrl = URL.createObjectURL(file);
     setOriginalImage(imageUrl);
     setProcessedImage(null);
+    setProcessedImageNoBg(null);
     setIsProcessing(true);
 
     try {
       // Process the image to remove background
       const processedBlob = await removeBackground(imageUrl);
       const processedUrl = URL.createObjectURL(processedBlob);
+      setProcessedImageNoBg(processedUrl);
       setProcessedImage(processedUrl);
     } catch (error) {
       console.error('Error removing background:', error);
@@ -95,12 +106,19 @@ export default function Home() {
   };
 
   const handleBackgroundChange = async (option: BackgroundOption) => {
-    if (!originalImage || !processedImage) return;
+    if (!originalImage || !processedImageNoBg) return;
     
     setBackgroundOption(option);
-    const newProcessedUrl = await applyBackgroundEffect(originalImage, processedImage, option);
-    if (newProcessedUrl) {
-      setProcessedImage(newProcessedUrl);
+    
+    if (option === 'none') {
+      // For no background, use the original processed image
+      setProcessedImage(processedImageNoBg);
+    } else {
+      // Apply the selected background effect
+      const newProcessedUrl = await applyBackgroundEffect(originalImage, processedImageNoBg, option);
+      if (newProcessedUrl) {
+        setProcessedImage(newProcessedUrl);
+      }
     }
   };
 
