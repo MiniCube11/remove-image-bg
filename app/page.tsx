@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { removeBackground } from '@imgly/background-removal';
 
-type BackgroundOption = 'none' | 'blur' | 'bw';
+type BackgroundOption = 'none' | 'blur' | 'bw' | 'color';
 
 export default function Home() {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
@@ -12,6 +12,7 @@ export default function Home() {
   const [processedImageNoBg, setProcessedImageNoBg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [backgroundOption, setBackgroundOption] = useState<BackgroundOption>('none');
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
 
@@ -62,11 +63,14 @@ export default function Home() {
       // For no background, just return the foreground image
       ctx.drawImage(foregroundImg, 0, 0);
     } else {
-      // Draw original image
-      ctx.drawImage(originalImg, 0, 0);
+      // Fill with background color first
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Apply background effect
       if (option === 'blur') {
+        // Draw original image
+        ctx.drawImage(originalImg, 0, 0);
+        
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
@@ -81,6 +85,9 @@ export default function Home() {
         ctx.drawImage(tempCanvas, 0, 0);
         ctx.filter = 'none';
       } else if (option === 'bw') {
+        // Draw original image
+        ctx.drawImage(originalImg, 0, 0);
+        
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         for (let i = 0; i < data.length; i += 4) {
@@ -137,6 +144,13 @@ export default function Home() {
     }
   };
 
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBackgroundColor(e.target.value);
+    if (backgroundOption === 'color') {
+      handleBackgroundChange('color');
+    }
+  };
+
   return (
     <div className="min-h-screen p-8">
       <main className="max-w-4xl mx-auto">
@@ -166,37 +180,61 @@ export default function Home() {
           )}
 
           {processedImage && (
-            <div className="flex gap-4">
-              <button
-                onClick={() => handleBackgroundChange('none')}
-                className={`px-4 py-2 rounded ${
-                  backgroundOption === 'none'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300'
-                }`}
-              >
-                No Background
-              </button>
-              <button
-                onClick={() => handleBackgroundChange('blur')}
-                className={`px-4 py-2 rounded ${
-                  backgroundOption === 'blur'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300'
-                }`}
-              >
-                Blurred Background
-              </button>
-              <button
-                onClick={() => handleBackgroundChange('bw')}
-                className={`px-4 py-2 rounded ${
-                  backgroundOption === 'bw'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300'
-                }`}
-              >
-                Black & White Background
-              </button>
+            <div className="flex flex-col gap-4 items-center">
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handleBackgroundChange('none')}
+                  className={`px-4 py-2 rounded ${
+                    backgroundOption === 'none'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  No Background
+                </button>
+                <button
+                  onClick={() => handleBackgroundChange('blur')}
+                  className={`px-4 py-2 rounded ${
+                    backgroundOption === 'blur'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  Blurred Background
+                </button>
+                <button
+                  onClick={() => handleBackgroundChange('bw')}
+                  className={`px-4 py-2 rounded ${
+                    backgroundOption === 'bw'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  Black & White Background
+                </button>
+                <button
+                  onClick={() => handleBackgroundChange('color')}
+                  className={`px-4 py-2 rounded ${
+                    backgroundOption === 'color'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  Custom Color
+                </button>
+              </div>
+              
+              {backgroundOption === 'color' && (
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium">Background Color:</label>
+                  <input
+                    type="color"
+                    value={backgroundColor}
+                    onChange={handleColorChange}
+                    className="w-12 h-12 rounded cursor-pointer"
+                  />
+                </div>
+              )}
             </div>
           )}
 
