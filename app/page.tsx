@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { removeBackground } from '@imgly/background-removal';
 
@@ -13,6 +13,30 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [backgroundOption, setBackgroundOption] = useState<BackgroundOption>('none');
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const workerRef = useRef<Worker | null>(null);
+
+  useEffect(() => {
+    // Initialize worker
+    workerRef.current = new Worker(new URL('./worker.ts', import.meta.url));
+    
+    // Handle worker messages
+    workerRef.current.onmessage = (e) => {
+      const { success, blob, error } = e.data;
+      if (success && blob) {
+        const processedUrl = URL.createObjectURL(blob);
+        setProcessedImageNoBg(processedUrl);
+        setProcessedImage(processedUrl);
+      } else {
+        console.error('Error processing image:', error);
+      }
+      setIsProcessing(false);
+    };
+
+    // Cleanup worker on unmount
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
 
   const applyBackgroundEffect = async (originalUrl: string, foregroundUrl: string, option: BackgroundOption) => {
     if (!canvasRef.current) return;
@@ -92,17 +116,8 @@ export default function Home() {
     setProcessedImageNoBg(null);
     setIsProcessing(true);
 
-    try {
-      // Process the image to remove background
-      const processedBlob = await removeBackground(imageUrl);
-      const processedUrl = URL.createObjectURL(processedBlob);
-      setProcessedImageNoBg(processedUrl);
-      setProcessedImage(processedUrl);
-    } catch (error) {
-      console.error('Error removing background:', error);
-    } finally {
-      setIsProcessing(false);
-    }
+    // Send image to worker for processing
+    workerRef.current?.postMessage({ imageUrl });
   };
 
   const handleBackgroundChange = async (option: BackgroundOption) => {
@@ -146,6 +161,7 @@ export default function Home() {
           {isProcessing && (
             <div className="text-center">
               <p className="text-lg">Processing image...</p>
+              <div className="mt-4 w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
             </div>
           )}
 
