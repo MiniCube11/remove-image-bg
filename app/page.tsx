@@ -15,6 +15,7 @@ export default function Home() {
   const [processingStep, setProcessingStep] = useState<string>('');
   const [backgroundOption, setBackgroundOption] = useState<BackgroundOption>('none');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [blurIntensity, setBlurIntensity] = useState(10);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
   const colorChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -100,8 +101,8 @@ export default function Home() {
         tempCanvas.height = canvas.height;
         tempCtx.putImageData(imageData, 0, 0);
 
-        // Apply blur effect
-        ctx.filter = 'blur(10px)';
+        // Apply blur effect with adjustable intensity
+        ctx.filter = `blur(${blurIntensity}px)`;
         ctx.drawImage(tempCanvas, 0, 0);
         ctx.filter = 'none';
       } else if (option === 'bw') {
@@ -130,7 +131,7 @@ export default function Home() {
       }, 'image/png');
     });
     return URL.createObjectURL(blob);
-  }, [backgroundColor]);
+  }, [backgroundColor, blurIntensity]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -178,6 +179,13 @@ export default function Home() {
         handleBackgroundChange('color');
       }
     }, 100); // 100ms debounce
+  };
+
+  const handleBlurChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBlurIntensity(Number(e.target.value));
+    if (backgroundOption === 'blur') {
+      handleBackgroundChange('blur');
+    }
   };
 
   return (
@@ -267,6 +275,20 @@ export default function Home() {
                     value={backgroundColor}
                     onChange={handleColorChange}
                     className="w-12 h-12 rounded cursor-pointer"
+                  />
+                </div>
+              )}
+
+              {backgroundOption === 'blur' && (
+                <div className="flex flex-col items-center gap-2 w-full max-w-md">
+                  <label className="text-sm font-medium">Blur Intensity: {blurIntensity}px</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    value={blurIntensity}
+                    onChange={handleBlurChange}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
               )}
