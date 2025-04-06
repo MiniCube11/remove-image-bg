@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { removeBackground } from '@imgly/background-removal';
 
@@ -11,10 +11,13 @@ export default function Home() {
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [processedImageNoBg, setProcessedImageNoBg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState<string>('');
   const [backgroundOption, setBackgroundOption] = useState<BackgroundOption>('none');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
+  const colorChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Initialize worker
@@ -22,24 +25,41 @@ export default function Home() {
     
     // Handle worker messages
     workerRef.current.onmessage = (e) => {
-      const { success, blob, error } = e.data;
-      if (success && blob) {
-        const processedUrl = URL.createObjectURL(blob);
-        setProcessedImageNoBg(processedUrl);
-        setProcessedImage(processedUrl);
-      } else {
-        console.error('Error processing image:', error);
+      const { type, progress, success, blob, error } = e.data;
+      
+      if (type === 'progress') {
+        setProcessingProgress(progress);
+        if (progress < 30) {
+          setProcessingStep('Optimizing image...');
+        } else if (progress < 100) {
+          setProcessingStep('Removing background...');
+        } else {
+          setProcessingStep('Finalizing...');
+        }
+      } else if (type === 'complete') {
+        if (success && blob) {
+          const processedUrl = URL.createObjectURL(blob);
+          setProcessedImageNoBg(processedUrl);
+          setProcessedImage(processedUrl);
+        } else {
+          console.error('Error processing image:', error);
+        }
+        setIsProcessing(false);
+        setProcessingProgress(0);
+        setProcessingStep('');
       }
-      setIsProcessing(false);
     };
 
     // Cleanup worker on unmount
     return () => {
       workerRef.current?.terminate();
+      if (colorChangeTimeoutRef.current) {
+        clearTimeout(colorChangeTimeoutRef.current);
+      }
     };
   }, []);
 
-  const applyBackgroundEffect = async (originalUrl: string, foregroundUrl: string, option: BackgroundOption) => {
+  const applyBackgroundEffect = useCallback(async (originalUrl: string, foregroundUrl: string, option: BackgroundOption) => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -110,7 +130,7 @@ export default function Home() {
       }, 'image/png');
     });
     return URL.createObjectURL(blob);
-  };
+  }, [backgroundColor]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,7 +147,7 @@ export default function Home() {
     workerRef.current?.postMessage({ imageUrl });
   };
 
-  const handleBackgroundChange = async (option: BackgroundOption) => {
+  const handleBackgroundChange = useCallback(async (option: BackgroundOption) => {
     if (!originalImage || !processedImageNoBg) return;
     
     setBackgroundOption(option);
@@ -142,13 +162,22 @@ export default function Home() {
         setProcessedImage(newProcessedUrl);
       }
     }
-  };
+  }, [originalImage, processedImageNoBg, applyBackgroundEffect]);
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setBackgroundColor(e.target.value);
-    if (backgroundOption === 'color') {
-      handleBackgroundChange('color');
+    
+    // Clear any existing timeout
+    if (colorChangeTimeoutRef.current) {
+      clearTimeout(colorChangeTimeoutRef.current);
     }
+    
+    // Set a new timeout to debounce the color change
+    colorChangeTimeoutRef.current = setTimeout(() => {
+      if (backgroundOption === 'color') {
+        handleBackgroundChange('color');
+      }
+    }, 100); // 100ms debounce
   };
 
   return (
@@ -173,9 +202,15 @@ export default function Home() {
           </div>
 
           {isProcessing && (
-            <div className="text-center">
-              <p className="text-lg">Processing image...</p>
-              <div className="mt-4 w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <div className="text-center w-full max-w-md">
+              <p className="text-lg mb-2">{processingStep}</p>
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                <div 
+                  className="bg-blue-500 h-2.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${processingProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-500">{processingProgress}% complete</p>
             </div>
           )}
 
