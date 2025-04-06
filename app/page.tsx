@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { removeBackground } from '@imgly/background-removal';
 
-type BackgroundOption = 'none' | 'blur' | 'bw' | 'color';
+type BackgroundOption = 'none' | 'blur' | 'bw' | 'color' | 'border';
 type SelectionMode = 'foreground' | 'background' | 'none';
 
 export default function Home() {
@@ -20,12 +20,15 @@ export default function Home() {
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('none');
   const [isDrawing, setIsDrawing] = useState(false);
   const [brushSize, setBrushSize] = useState(20);
+  const [borderSize, setBorderSize] = useState(40);
+  const [borderColor, setBorderColor] = useState('#ffffff');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectionCanvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
   const colorChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Initialize worker
@@ -90,6 +93,69 @@ export default function Home() {
     if (option === 'none') {
       // For no background, just return the foreground image
       ctx.drawImage(foregroundImg, 0, 0);
+    } else if (option === 'border') {
+      // Create the border effect
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
+
+      // First, find the bounds of the non-transparent pixels
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+      
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const alpha = data[(y * canvas.width + x) * 4 + 3];
+          if (alpha > 0) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+
+      // Calculate the dimensions and center of the actual content
+      const contentWidth = maxX - minX;
+      const contentHeight = maxY - minY;
+      const contentCenterX = minX + contentWidth / 2;
+      const contentCenterY = minY + contentHeight / 2;
+
+      // Set up the temporary canvas
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+
+      // Draw the foreground image
+      tempCtx.drawImage(foregroundImg, 0, 0);
+
+      // Create a path from non-transparent pixels
+      tempCtx.globalCompositeOperation = 'source-in';
+      tempCtx.fillStyle = borderColor;
+      tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Clear the main canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw the expanded border with shadow for depth
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+      ctx.shadowBlur = 1;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 1;
+
+      // Scale from the content center
+      const scale = 1 + (borderSize / 100);
+      
+      ctx.translate(contentCenterX, contentCenterY);
+      ctx.scale(scale, scale);
+      ctx.translate(-contentCenterX, -contentCenterY);
+      
+      ctx.drawImage(tempCanvas, 0, 0);
+      ctx.restore();
+
+      // Draw the original foreground image
+      ctx.drawImage(foregroundImg, 0, 0);
     } else {
       // Fill with background color first
       ctx.fillStyle = backgroundColor;
@@ -138,7 +204,7 @@ export default function Home() {
       }, 'image/png');
     });
     return URL.createObjectURL(blob);
-  }, [backgroundColor, blurIntensity]);
+  }, [backgroundColor, blurIntensity, borderColor, borderSize]);
 
   const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
@@ -347,6 +413,12 @@ export default function Home() {
     });
   };
 
+  const handleSelectClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="min-h-screen py-16 px-4 bg-[#FAFAFA]">
       <main className="max-w-3xl mx-auto">
@@ -374,11 +446,16 @@ export default function Home() {
                   </p>
                   <p className="text-[14px] text-gray-600">Supports JPG, PNG and WebP (max 5MB)</p>
                 </div>
-                <button className="mt-2 px-8 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors">
+                <button
+                  type="button"
+                  onClick={handleSelectClick}
+                  className="mt-2 px-8 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors"
+                >
                   Select Image
                 </button>
               </div>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
@@ -412,6 +489,16 @@ export default function Home() {
                   }`}
                 >
                   No Background
+                </button>
+                <button
+                  onClick={() => handleBackgroundChange('border')}
+                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
+                    backgroundOption === 'border'
+                      ? 'bg-[#4F46E5] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Sticker Border
                 </button>
                 <button
                   onClick={() => handleBackgroundChange('blur')}
@@ -517,6 +604,38 @@ export default function Home() {
                     onChange={handleBlurChange}
                     className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
                   />
+                </div>
+              )}
+
+              {backgroundOption === 'border' && (
+                <div className="flex flex-col items-center gap-3 w-full max-w-md">
+                  <div className="flex items-center gap-4 w-full">
+                    <label className="text-[14px] font-medium text-gray-700">Border Color:</label>
+                    <input
+                      type="color"
+                      value={borderColor}
+                      onChange={(e) => {
+                        setBorderColor(e.target.value);
+                        handleBackgroundChange('border');
+                      }}
+                      className="w-12 h-12 rounded cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 w-full">
+                    <label className="text-[14px] font-medium text-gray-700">Border Width: {borderSize}px</label>
+                    <input
+                      type="range"
+                      min="20"
+                      max="200"
+                      step="5"
+                      value={borderSize}
+                      onChange={(e) => {
+                        setBorderSize(Number(e.target.value));
+                        handleBackgroundChange('border');
+                      }}
+                      className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
                 </div>
               )}
             </div>
