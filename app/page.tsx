@@ -411,14 +411,7 @@ export default function Home() {
                 />
               </label>
             </div>
-          ) : (
-            <button
-              onClick={handleSelectClick}
-              className="px-6 py-3 bg-white text-[#4F46E5] border-2 border-[#4F46E5] rounded-lg hover:bg-[#F5F7FF] transition-colors font-medium"
-            >
-              Upload New Image
-            </button>
-          )}
+          ) : null}
 
           {isProcessing && (
             <div className="text-center w-full">
