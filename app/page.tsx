@@ -463,7 +463,12 @@ export default function Home() {
   return (
     <div className="min-h-screen py-16 px-4 bg-[#FAFAFA]">
       <main className="max-w-3xl mx-auto">
-        <h1 className="text-[28px] font-semibold mb-12 text-center tracking-tight">Background Remover</h1>
+        <h1 className="text-[36px] font-bold mb-6 text-center tracking-tight">
+          <span className="bg-gradient-to-r from-indigo-600 to-purple-500 text-transparent bg-clip-text">Remove  image backgrounds</span> in seconds
+        </h1>
+        <p className="text-center text-gray-600 mb-12 max-w-xl mx-auto">
+          Remove backgrounds in one click. Add stylish filters, borders, and more with our editor—100% free, no sign-up required.
+        </p>
         
         <div className="flex flex-col items-center gap-12">
           <div className="w-full">
@@ -483,9 +488,9 @@ export default function Home() {
                 </div>
                 <div className="space-y-2">
                   <p className={`text-[20px] font-medium tracking-tight transition-colors duration-200 ${isDragging ? 'text-[#4F46E5]' : 'text-gray-900'}`}>
-                    {isDragging ? 'Drop your image here' : 'Drag and drop your image here'}
+                    Drag and drop your image here
                   </p>
-                  <p className="text-[14px] text-gray-600">Supports JPG, PNG and WebP (max 5MB)</p>
+                  <p className="text-[14px] text-gray-600">or click to select a file</p>
                 </div>
                 <button
                   type="button"
