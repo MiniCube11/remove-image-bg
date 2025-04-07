@@ -79,7 +79,17 @@ export default function Home() {
     };
   }, []);
 
-  const applyBackgroundEffect = useCallback(async (originalUrl: string, foregroundUrl: string, option: BackgroundOption) => {
+  const applyBackgroundEffect = useCallback(async (
+    originalUrl: string, 
+    foregroundUrl: string, 
+    option: BackgroundOption,
+    options?: {
+      color?: string;
+      blur?: number;
+      borderColor?: string;
+      borderSize?: number;
+    }
+  ) => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -109,7 +119,7 @@ export default function Home() {
       if (!tempCtx) return;
 
       // Calculate border thickness (scaled based on the slider value)
-      const thickness = Math.max(1, Math.floor(borderSize / 8));
+      const thickness = Math.max(1, Math.floor((options?.borderSize ?? borderSize) / 8));
       
       // Set canvas dimensions with padding for the border
       tempCanvas.width = canvas.width + thickness * 2;
@@ -142,7 +152,7 @@ export default function Home() {
       tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
 
       // Fill the entire temporary canvas with the border color
-      tempCtx.fillStyle = borderColor;
+      tempCtx.fillStyle = options?.borderColor ?? borderColor;
       tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
       // Use the mask to cut out the border shape
@@ -165,7 +175,7 @@ export default function Home() {
       ctx.drawImage(foregroundImg, 0, 0);
     } else {
       // Fill with background color first
-      ctx.fillStyle = backgroundColor;
+      ctx.fillStyle = options?.color ?? backgroundColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (option === 'blur') {
@@ -177,7 +187,7 @@ export default function Home() {
         bgCanvas.height = canvas.height;
 
         // Apply blur to the entire background
-        bgCtx.filter = `blur(${blurIntensity}px)`;
+        bgCtx.filter = `blur(${options?.blur ?? blurIntensity}px)`;
         bgCtx.drawImage(originalImg, 0, 0);
         bgCtx.filter = 'none';
 
@@ -297,7 +307,12 @@ export default function Home() {
     workerRef.current?.postMessage({ imageUrl });
   };
 
-  const handleBackgroundChange = useCallback(async (option: BackgroundOption) => {
+  const handleBackgroundChange = useCallback(async (option: BackgroundOption, newOptions?: {
+    color?: string;
+    blur?: number;
+    borderColor?: string;
+    borderSize?: number;
+  }) => {
     if (!originalImage || !processedImageNoBg) return;
     
     setBackgroundOption(option);
@@ -305,7 +320,7 @@ export default function Home() {
     if (option === 'none') {
       setProcessedImage(processedImageNoBg);
     } else {
-      const newProcessedUrl = await applyBackgroundEffect(originalImage, processedImageNoBg, option);
+      const newProcessedUrl = await applyBackgroundEffect(originalImage, processedImageNoBg, option, newOptions);
       if (newProcessedUrl) {
         setProcessedImage(newProcessedUrl);
       }
@@ -523,6 +538,198 @@ export default function Home() {
                   />
                 </div>
 
+                <div className="fixed right-0 top-0 h-screen w-[320px] bg-white shadow-lg p-6 overflow-y-auto">
+                  <div className="space-y-6">
+                    {/* Background Section */}
+                    <div>
+                      <h3 className="text-[16px] font-semibold mb-4">Background</h3>
+                      <div className="flex flex-wrap gap-3">
+                        {[
+                          { 
+                            id: 'transparent',
+                            type: 'transparent',
+                            label: 'Transparent'
+                          },
+                          { 
+                            id: 'white',
+                            type: 'color',
+                            color: '#FFFFFF',
+                            border: true
+                          },
+                          { 
+                            id: 'black',
+                            type: 'color',
+                            color: '#000000'
+                          },
+                          { 
+                            id: 'brown',
+                            type: 'color',
+                            color: '#8B4513'
+                          },
+                          { 
+                            id: 'navy',
+                            type: 'color',
+                            color: '#000080'
+                          },
+                          { 
+                            id: 'peach',
+                            type: 'color',
+                            color: '#FFDAB9'
+                          },
+                          {
+                            id: 'custom',
+                            type: 'picker'
+                          }
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={async () => {
+                              if (item.type === 'picker') {
+                                const input = document.createElement('input');
+                                input.type = 'color';
+                                input.value = backgroundColor;
+                                input.addEventListener('change', async (e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  setBackgroundColor(target.value);
+                                  await handleBackgroundChange('color', { color: target.value });
+                                });
+                                input.click();
+                              } else if (item.type === 'color') {
+                                setBackgroundColor(item.color!);
+                                await handleBackgroundChange('color', { color: item.color });
+                              } else if (item.type === 'transparent') {
+                                handleBackgroundChange('none');
+                              }
+                            }}
+                            className={`w-10 h-10 rounded-full cursor-pointer transition-all relative
+                              ${item.type === 'transparent' ? 'bg-[repeating-conic-gradient(#FFFFFF_0_90deg,#E5E7EB_90deg_180deg)_0_0/10px_10px]' : ''}
+                              hover:scale-110
+                              ${item.border ? 'border-2 border-gray-300' : ''}
+                              ${(item.type === 'color' && backgroundColor === item.color && backgroundOption === 'color') || 
+                                (item.type === 'transparent' && backgroundOption === 'none')
+                                  ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}`}
+                            style={{
+                              background: item.type === 'color' ? item.color : 
+                                        item.type === 'picker' ? 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' : undefined
+                            }}
+                            aria-label={item.label || `Select ${item.color} background`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Shadow Section */}
+                    <div>
+                      <button 
+                        onClick={() => handleBackgroundChange('border')}
+                        className="flex items-center justify-between w-full text-left mb-4"
+                      >
+                        <h3 className="text-[16px] font-semibold">Shadow</h3>
+                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {backgroundOption === 'border' && (
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-[14px] font-medium text-gray-700">Size</label>
+                              <span className="text-[14px] text-gray-500">{borderSize}px</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="20"
+                              max="200"
+                              step="5"
+                              value={borderSize}
+                              onChange={handleBorderSizeChange}
+                              className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[14px] font-medium text-gray-700 block mb-2">Color</label>
+                            <div className="flex gap-2">
+                              {['#FFFFFF', '#000000', '#4F46E5', '#FFC0CB', '#FFD700'].map((color) => (
+                                <button
+                                  key={color}
+                                  onClick={async () => {
+                                    setBorderColor(color);
+                                    await handleBackgroundChange('border', { borderColor: color });
+                                  }}
+                                  className={`w-8 h-8 rounded-full cursor-pointer transition-all
+                                    ${color === '#FFFFFF' ? 'border-2 border-gray-300' : ''}
+                                    ${borderColor === color ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}
+                                    hover:scale-110`}
+                                  style={{ backgroundColor: color }}
+                                />
+                              ))}
+                              <button
+                                onClick={() => {
+                                  const input = document.createElement('input');
+                                  input.type = 'color';
+                                  input.value = borderColor;
+                                  input.addEventListener('change', async (e) => {
+                                    const target = e.target as HTMLInputElement;
+                                    setBorderColor(target.value);
+                                    await handleBackgroundChange('border', { borderColor: target.value });
+                                  });
+                                  input.click();
+                                }}
+                                className="w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110"
+                                style={{ background: 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Blur Section */}
+                    <div>
+                      <button 
+                        onClick={() => handleBackgroundChange('blur')}
+                        className="flex items-center justify-between w-full text-left mb-4"
+                      >
+                        <h3 className="text-[16px] font-semibold">Blur</h3>
+                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {backgroundOption === 'blur' && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-[14px] font-medium text-gray-700">Intensity</label>
+                            <span className="text-[14px] text-gray-500">{blurIntensity}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="50"
+                            value={blurIntensity}
+                            onChange={handleBlurChange}
+                            className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* B&W Section */}
+                    <div>
+                      <button 
+                        onClick={() => handleBackgroundChange('bw')}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <h3 className="text-[16px] font-semibold">Black & White</h3>
+                        <div className={`w-6 h-6 rounded-sm transition-opacity ${backgroundOption === 'bw' ? 'opacity-100' : 'opacity-0'}`}>
+                          <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <a
                   href={processedImage}
                   download="processed-image.png"
@@ -531,133 +738,6 @@ export default function Home() {
                   Download
                 </a>
               </div>
-
-              {backgroundOption === 'color' && (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    {([
-                      { 
-                        id: 'transparent',
-                        type: 'transparent',
-                        label: 'Transparent background',
-                        onClick: () => handleBackgroundChange('none')
-                      },
-                      { 
-                        id: 'white',
-                        type: 'color',
-                        color: '#FFFFFF',
-                        border: true,
-                        label: 'White background'
-                      },
-                      { 
-                        id: 'black',
-                        type: 'color',
-                        color: '#000000',
-                        label: 'Black background'
-                      },
-                      { 
-                        id: 'indigo',
-                        type: 'color',
-                        color: '#4F46E5',
-                        label: 'Indigo background'
-                      },
-                      { 
-                        id: 'pink',
-                        type: 'color',
-                        color: '#FFC0CB',
-                        label: 'Pink background'
-                      },
-                      { 
-                        id: 'gold',
-                        type: 'color',
-                        color: '#FFD700',
-                        label: 'Gold background'
-                      },
-                      {
-                        id: 'custom',
-                        type: 'picker',
-                        label: 'Custom color'
-                      }
-                    ] as ColorOption[]).map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          if (item.type === 'picker') {
-                            const input = document.createElement('input');
-                            input.type = 'color';
-                            input.value = backgroundColor;
-                            input.addEventListener('change', (e) => handleColorChange(e as any));
-                            input.click();
-                          } else if (item.type === 'color') {
-                            setBackgroundColor(item.color!);
-                            handleBackgroundChange('color');
-                          } else if (item.onClick) {
-                            item.onClick();
-                          }
-                        }}
-                        className={`w-10 h-10 rounded-full cursor-pointer transition-all relative
-                          ${item.type === 'transparent' ? 'bg-[repeating-conic-gradient(#FFFFFF_0_90deg,#E5E7EB_90deg_180deg)_0_0/10px_10px]' : ''}
-                          hover:scale-110
-                          ${item.border ? 'border-2 border-gray-300' : ''}
-                          ${(item.type === 'color' && backgroundColor === item.color) || 
-                            (item.id === 'transparent' && backgroundOption === 'none' as BackgroundOption)
-                              ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}`}
-                        style={{
-                          background: item.type === 'color' ? item.color : 
-                                    item.type === 'picker' ? 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' : undefined,
-                        }}
-                        aria-label={item.label}
-                      />
-                    ))}
-                  </div>
-                  <input
-                    type="color"
-                    value={backgroundColor}
-                    onChange={handleColorChange}
-                    className="hidden"
-                  />
-                </div>
-              )}
-
-              {backgroundOption === 'blur' && (
-                <div className="flex flex-col items-center gap-3 w-full max-w-md">
-                  <label className="text-[14px] font-medium text-gray-700">Blur Intensity: {blurIntensity}px</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="50"
-                    value={blurIntensity}
-                    onChange={handleBlurChange}
-                    className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
-              )}
-
-              {backgroundOption === 'border' && (
-                <div className="flex flex-col items-center gap-3 w-full max-w-md">
-                  <div className="flex items-center gap-4 w-full">
-                    <label className="text-[14px] font-medium text-gray-700">Border Color:</label>
-                    <input
-                      type="color"
-                      value={borderColor}
-                      onChange={handleBorderColorChange}
-                      className="w-12 h-12 rounded cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2 w-full">
-                    <label className="text-[14px] font-medium text-gray-700">Border Width: {borderSize}px</label>
-                    <input
-                      type="range"
-                      min="20"
-                      max="200"
-                      step="5"
-                      value={borderSize}
-                      onChange={handleBorderSizeChange}
-                      className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
