@@ -30,6 +30,7 @@ export default function Home() {
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showOriginal, setShowOriginal] = useState(false);
 
   useEffect(() => {
     // Initialize worker
@@ -461,7 +462,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen py-16 px-4 bg-[#FAFAFA]">
+    <div className="min-h-screen py-16 px-4 bg-[#F8F9FB]">
       <main className="max-w-3xl mx-auto">
         <h1 className="text-[36px] font-bold mb-6 text-center tracking-tight">
           <span className="bg-gradient-to-r from-indigo-600 to-purple-500 text-transparent bg-clip-text">Remove  image backgrounds</span> in seconds
@@ -533,58 +534,119 @@ export default function Home() {
           )}
 
           {processedImage && (
-            <div className="flex flex-col gap-6 items-center w-full">
-              <div className="flex gap-3 flex-wrap justify-center">
-                <button
-                  onClick={() => handleBackgroundChange('none')}
-                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                    backgroundOption === 'none'
-                      ? 'bg-[#4F46E5] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+            <>
+              <div className="flex flex-col items-center w-full">
+                <div className="flex gap-3 flex-wrap justify-center mb-6">
+                  <button
+                    onClick={() => handleBackgroundChange('none')}
+                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
+                      backgroundOption === 'none'
+                        ? 'bg-[#4F46E5] text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    No Background
+                  </button>
+                  <button
+                    onClick={() => handleBackgroundChange('border')}
+                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
+                      backgroundOption === 'border'
+                        ? 'bg-[#4F46E5] text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Sticker Border
+                  </button>
+                  <button
+                    onClick={() => handleBackgroundChange('blur')}
+                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
+                      backgroundOption === 'blur'
+                        ? 'bg-[#4F46E5] text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Blurred Background
+                  </button>
+                  <button
+                    onClick={() => handleBackgroundChange('bw')}
+                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
+                      backgroundOption === 'bw'
+                        ? 'bg-[#4F46E5] text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Black & White Background
+                  </button>
+                  <button
+                    onClick={() => handleBackgroundChange('color')}
+                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
+                      backgroundOption === 'color'
+                        ? 'bg-[#4F46E5] text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Custom Color
+                  </button>
+                </div>
+
+                {/* Before/After Toggle */}
+                <div className="flex justify-end w-full mb-2">
+                  <div className="flex bg-[#F1F2F4] rounded-lg p-0.5">
+                    <button
+                      onClick={() => setShowOriginal(true)}
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        showOriginal
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Before
+                    </button>
+                    <button
+                      onClick={() => setShowOriginal(false)}
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        !showOriginal
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      After
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative w-full aspect-square bg-[#F8F9FB] rounded-2xl overflow-hidden">
+                  <Image
+                    src={showOriginal ? originalImage! : processedImage}
+                    alt={showOriginal ? "Original" : "Processed"}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 768px"
+                    className="object-contain p-4 rounded-2xl"
+                    style={{ 
+                      backgroundColor: '#F8F9FB',
+                      border: '1px solid rgba(0, 0, 0, 0.08)'
+                    }}
+                    priority
+                  />
+                  {selectionMode !== 'none' && !showOriginal && (
+                    <canvas
+                      ref={selectionCanvasRef}
+                      className="absolute inset-0 w-full h-full"
+                      onMouseDown={handleSelectionStart}
+                      onMouseMove={handleSelectionMove}
+                      onMouseUp={handleSelectionEnd}
+                      onMouseLeave={handleSelectionEnd}
+                    />
+                  )}
+                </div>
+
+                <a
+                  href={processedImage}
+                  download="processed-image.png"
+                  className="mt-6 px-6 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors"
                 >
-                  No Background
-                </button>
-                <button
-                  onClick={() => handleBackgroundChange('border')}
-                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                    backgroundOption === 'border'
-                      ? 'bg-[#4F46E5] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Sticker Border
-                </button>
-                <button
-                  onClick={() => handleBackgroundChange('blur')}
-                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                    backgroundOption === 'blur'
-                      ? 'bg-[#4F46E5] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Blurred Background
-                </button>
-                <button
-                  onClick={() => handleBackgroundChange('bw')}
-                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                    backgroundOption === 'bw'
-                      ? 'bg-[#4F46E5] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Black & White Background
-                </button>
-                <button
-                  onClick={() => handleBackgroundChange('color')}
-                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                    backgroundOption === 'color'
-                      ? 'bg-[#4F46E5] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Custom Color
-                </button>
+                  Download
+                </a>
               </div>
 
               <div className="flex gap-3 flex-wrap justify-center">
@@ -687,55 +749,8 @@ export default function Home() {
                   </div>
                 </div>
               )}
-            </div>
+            </>
           )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 w-full">
-            {originalImage && (
-              <div className="flex flex-col items-center">
-                <h2 className="text-[16px] font-semibold mb-6">Original Image</h2>
-                <div className="relative w-full aspect-square">
-                  <Image
-                    src={originalImage}
-                    alt="Original"
-                    fill
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            )}
-
-            {processedImage && (
-              <div className="flex flex-col items-center">
-                <h2 className="text-[16px] font-semibold mb-6">Processed Image</h2>
-                <div className="relative w-full aspect-square">
-                  <Image
-                    src={processedImage}
-                    alt="Processed"
-                    fill
-                    className="object-contain"
-                  />
-                  {selectionMode !== 'none' && (
-                    <canvas
-                      ref={selectionCanvasRef}
-                      className="absolute inset-0 w-full h-full"
-                      onMouseDown={handleSelectionStart}
-                      onMouseMove={handleSelectionMove}
-                      onMouseUp={handleSelectionEnd}
-                      onMouseLeave={handleSelectionEnd}
-                    />
-                  )}
-                </div>
-                <a
-                  href={processedImage}
-                  download="processed-image.png"
-                  className="mt-6 px-6 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors"
-                >
-                  Download
-                </a>
-              </div>
-            )}
-          </div>
         </div>
       </main>
       <canvas ref={canvasRef} className="hidden" />
