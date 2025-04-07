@@ -5,7 +5,16 @@ import Image from 'next/image';
 import { removeBackground } from '@imgly/background-removal';
 
 type BackgroundOption = 'none' | 'blur' | 'bw' | 'color' | 'border';
-type SelectionMode = 'foreground' | 'background' | 'none';
+
+type ColorOption = {
+  id: string;
+  type: 'color' | 'transparent' | 'effect' | 'picker';
+  label: string;
+  color?: string;
+  border?: boolean;
+  icon?: string;
+  onClick?: () => void;
+};
 
 export default function Home() {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
@@ -17,19 +26,14 @@ export default function Home() {
   const [backgroundOption, setBackgroundOption] = useState<BackgroundOption>('none');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [blurIntensity, setBlurIntensity] = useState(10);
-  const [selectionMode, setSelectionMode] = useState<SelectionMode>('none');
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [brushSize, setBrushSize] = useState(20);
   const [borderSize, setBorderSize] = useState(40);
   const [borderColor, setBorderColor] = useState('#ffffff');
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const selectionCanvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
   const colorChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const borderChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
 
   useEffect(() => {
@@ -299,10 +303,8 @@ export default function Home() {
     setBackgroundOption(option);
     
     if (option === 'none') {
-      // For no background, use the original processed image
       setProcessedImage(processedImageNoBg);
     } else {
-      // Apply the selected background effect
       const newProcessedUrl = await applyBackgroundEffect(originalImage, processedImageNoBg, option);
       if (newProcessedUrl) {
         setProcessedImage(newProcessedUrl);
@@ -312,18 +314,14 @@ export default function Home() {
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setBackgroundColor(e.target.value);
-    
-    // Clear any existing timeout
     if (colorChangeTimeoutRef.current) {
       clearTimeout(colorChangeTimeoutRef.current);
     }
-    
-    // Set a new timeout to debounce the color change
     colorChangeTimeoutRef.current = setTimeout(() => {
       if (backgroundOption === 'color') {
         handleBackgroundChange('color');
       }
-    }, 100); // 100ms debounce
+    }, 150);
   };
 
   const handleBlurChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -333,132 +331,34 @@ export default function Home() {
     }
   };
 
-  const handleSelectionStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (selectionMode === 'none') return;
-    setIsDrawing(true);
-    const canvas = selectionCanvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    lastPointRef.current = { x, y };
-  };
-
-  const handleSelectionMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || selectionMode === 'none') return;
-    const canvas = selectionCanvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    if (lastPointRef.current) {
-      ctx.beginPath();
-      ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
-      ctx.lineTo(x, y);
-      ctx.strokeStyle = selectionMode === 'foreground' ? 'rgba(0, 255, 0, 0.5)' : 'rgba(255, 0, 0, 0.5)';
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.stroke();
+  const handleBorderColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBorderColor(e.target.value);
+    if (borderChangeTimeoutRef.current) {
+      clearTimeout(borderChangeTimeoutRef.current);
     }
-
-    lastPointRef.current = { x, y };
-  };
-
-  const handleSelectionEnd = () => {
-    setIsDrawing(false);
-    lastPointRef.current = null;
-  };
-
-  const clearSelection = () => {
-    const canvas = selectionCanvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
-  const applySelection = async () => {
-    if (!originalImage || !processedImageNoBg || !selectionCanvasRef.current) return;
-
-    const selectionCanvas = selectionCanvasRef.current;
-    const selectionCtx = selectionCanvas.getContext('2d');
-    if (!selectionCtx) return;
-
-    // Get the selection mask
-    const selectionData = selectionCtx.getImageData(0, 0, selectionCanvas.width, selectionCanvas.height);
-    
-    // Convert the selection mask to the format expected by the worker
-    const maskData = new Uint8Array(selectionData.width * selectionData.height);
-    for (let i = 0; i < selectionData.data.length; i += 4) {
-      // Use the red channel to determine if it's a background mark
-      const isBackground = selectionData.data[i] > 0;
-      maskData[i / 4] = isBackground ? 0 : 255; // 0 for background, 255 for foreground
-    }
-
-    // Set processing state
-    setIsProcessing(true);
-    setProcessingProgress(0);
-    setProcessingStep('Processing selection...');
-
-    // Clear the selection canvas
-    clearSelection();
-
-    // Send the image and selection mask to the worker
-    workerRef.current?.postMessage({
-      imageUrl: originalImage,
-      selectionData: {
-        data: maskData,
-        width: selectionData.width,
-        height: selectionData.height
+    borderChangeTimeoutRef.current = setTimeout(() => {
+      if (backgroundOption === 'border') {
+        handleBackgroundChange('border');
       }
-    });
+    }, 150);
+  };
+
+  const handleBorderSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBorderSize(Number(e.target.value));
+    if (borderChangeTimeoutRef.current) {
+      clearTimeout(borderChangeTimeoutRef.current);
+    }
+    borderChangeTimeoutRef.current = setTimeout(() => {
+      if (backgroundOption === 'border') {
+        handleBackgroundChange('border');
+      }
+    }, 150);
   };
 
   const handleSelectClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     fileInputRef.current?.click();
-  };
-
-  const handleBorderColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBorderColor(e.target.value);
-    
-    // Clear any existing timeout
-    if (colorChangeTimeoutRef.current) {
-      clearTimeout(colorChangeTimeoutRef.current);
-    }
-    
-    // Set a new timeout to debounce the color change
-    colorChangeTimeoutRef.current = setTimeout(() => {
-      if (backgroundOption === 'border') {
-        handleBackgroundChange('border');
-      }
-    }, 150); // 150ms debounce
-  };
-
-  const handleBorderSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBorderSize(Number(e.target.value));
-    
-    // Clear any existing timeout
-    if (borderChangeTimeoutRef.current) {
-      clearTimeout(borderChangeTimeoutRef.current);
-    }
-    
-    // Set a new timeout to debounce the border size change
-    borderChangeTimeoutRef.current = setTimeout(() => {
-      if (backgroundOption === 'border') {
-        handleBackgroundChange('border');
-      }
-    }, 150); // 150ms debounce
   };
 
   return (
@@ -628,16 +528,6 @@ export default function Home() {
                     }}
                     priority
                   />
-                  {selectionMode !== 'none' && !showOriginal && (
-                    <canvas
-                      ref={selectionCanvasRef}
-                      className="absolute inset-0 w-full h-full"
-                      onMouseDown={handleSelectionStart}
-                      onMouseMove={handleSelectionMove}
-                      onMouseUp={handleSelectionEnd}
-                      onMouseLeave={handleSelectionEnd}
-                    />
-                  )}
                 </div>
 
                 <a
@@ -649,63 +539,89 @@ export default function Home() {
                 </a>
               </div>
 
-              <div className="flex gap-3 flex-wrap justify-center">
-                <button
-                  onClick={() => setSelectionMode(selectionMode === 'foreground' ? 'none' : 'foreground')}
-                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                    selectionMode === 'foreground'
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Mark Foreground
-                </button>
-                <button
-                  onClick={() => setSelectionMode(selectionMode === 'background' ? 'none' : 'background')}
-                  className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                    selectionMode === 'background'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Mark Background
-                </button>
-                <button
-                  onClick={clearSelection}
-                  className="px-5 py-2.5 rounded-md text-[14px] font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
-                >
-                  Clear Selection
-                </button>
-                <button
-                  onClick={applySelection}
-                  className="px-5 py-2.5 rounded-md text-[14px] font-medium bg-[#4F46E5] text-white hover:bg-[#4338CA]"
-                >
-                  Apply Selection
-                </button>
-              </div>
-
-              {selectionMode !== 'none' && (
-                <div className="flex flex-col items-center gap-3 w-full max-w-md">
-                  <label className="text-[14px] font-medium text-gray-700">Brush Size: {brushSize}px</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
-              )}
-              
               {backgroundOption === 'color' && (
                 <div className="flex items-center gap-4">
-                  <label className="text-[14px] font-medium text-gray-700">Background Color:</label>
+                  <div className="flex items-center gap-3">
+                    {([
+                      { 
+                        id: 'transparent',
+                        type: 'transparent',
+                        label: 'Transparent background',
+                        onClick: () => handleBackgroundChange('none')
+                      },
+                      { 
+                        id: 'white',
+                        type: 'color',
+                        color: '#FFFFFF',
+                        border: true,
+                        label: 'White background'
+                      },
+                      { 
+                        id: 'black',
+                        type: 'color',
+                        color: '#000000',
+                        label: 'Black background'
+                      },
+                      { 
+                        id: 'indigo',
+                        type: 'color',
+                        color: '#4F46E5',
+                        label: 'Indigo background'
+                      },
+                      { 
+                        id: 'pink',
+                        type: 'color',
+                        color: '#FFC0CB',
+                        label: 'Pink background'
+                      },
+                      { 
+                        id: 'gold',
+                        type: 'color',
+                        color: '#FFD700',
+                        label: 'Gold background'
+                      },
+                      {
+                        id: 'custom',
+                        type: 'picker',
+                        label: 'Custom color'
+                      }
+                    ] as ColorOption[]).map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          if (item.type === 'picker') {
+                            const input = document.createElement('input');
+                            input.type = 'color';
+                            input.value = backgroundColor;
+                            input.addEventListener('change', (e) => handleColorChange(e as any));
+                            input.click();
+                          } else if (item.type === 'color') {
+                            setBackgroundColor(item.color!);
+                            handleBackgroundChange('color');
+                          } else if (item.onClick) {
+                            item.onClick();
+                          }
+                        }}
+                        className={`w-10 h-10 rounded-full cursor-pointer transition-all relative
+                          ${item.type === 'transparent' ? 'bg-[repeating-conic-gradient(#FFFFFF_0_90deg,#E5E7EB_90deg_180deg)_0_0/10px_10px]' : ''}
+                          hover:scale-110
+                          ${item.border ? 'border-2 border-gray-300' : ''}
+                          ${(item.type === 'color' && backgroundColor === item.color) || 
+                            (item.id === 'transparent' && backgroundOption === 'none' as BackgroundOption)
+                              ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}`}
+                        style={{
+                          background: item.type === 'color' ? item.color : 
+                                    item.type === 'picker' ? 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' : undefined,
+                        }}
+                        aria-label={item.label}
+                      />
+                    ))}
+                  </div>
                   <input
                     type="color"
                     value={backgroundColor}
                     onChange={handleColorChange}
-                    className="w-12 h-12 rounded cursor-pointer"
+                    className="hidden"
                   />
                 </div>
               )}
