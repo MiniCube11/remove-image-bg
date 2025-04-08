@@ -110,7 +110,15 @@ export default function Home() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (option === 'none') {
-      // For no background, just return the foreground image
+      // Draw checkerboard pattern for transparent background
+      const size = 32; // Size of each square
+      for (let x = 0; x < canvas.width; x += size) {
+        for (let y = 0; y < canvas.height; y += size) {
+          ctx.fillStyle = (x + y) % (size * 2) === 0 ? '#FFFFFF' : '#F5F7FA';
+          ctx.fillRect(x, y, size, size);
+        }
+      }
+      // Draw the foreground image
       ctx.drawImage(foregroundImg, 0, 0);
     } else if (option === 'border') {
       // Create temporary canvas for the border effect
@@ -524,14 +532,21 @@ export default function Home() {
                 </div>
 
                 <div className="relative w-full aspect-square bg-[#F8F9FB] rounded-2xl overflow-hidden">
+                  <div 
+                    className={`absolute inset-0 ${
+                      backgroundOption === 'none' && !showOriginal ? 
+                      'bg-[linear-gradient(45deg,#F5F7FA_25%,transparent_25%,transparent_75%,#F5F7FA_75%,#F5F7FA),linear-gradient(45deg,#F5F7FA_25%,transparent_25%,transparent_75%,#F5F7FA_75%,#F5F7FA)] bg-[length:32px_32px] bg-[position:0_0,16px_16px] bg-white' 
+                      : ''
+                    }`}
+                  />
                   <Image
                     src={showOriginal ? originalImage! : processedImage}
                     alt={showOriginal ? "Original" : "Processed"}
                     fill
                     sizes="(max-width: 768px) 100vw, 768px"
-                    className="object-contain p-4 rounded-2xl"
+                    className="object-contain p-4 rounded-2xl relative"
                     style={{ 
-                      backgroundColor: '#F8F9FB',
+                      backgroundColor: backgroundOption === 'none' && !showOriginal ? 'transparent' : '#F8F9FB',
                       border: '1px solid rgba(0, 0, 0, 0.08)'
                     }}
                     priority
@@ -602,7 +617,7 @@ export default function Home() {
                               }
                             }}
                             className={`w-10 h-10 rounded-full cursor-pointer transition-all relative
-                              ${item.type === 'transparent' ? 'bg-[repeating-conic-gradient(#FFFFFF_0_90deg,#E5E7EB_90deg_180deg)_0_0/10px_10px]' : ''}
+                              ${item.type === 'transparent' ? 'bg-[linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6),linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6)] bg-[length:12px_12px] bg-[position:0_0,6px_6px] bg-white border border-gray-200' : ''}
                               hover:scale-110
                               ${item.border ? 'border-2 border-gray-300' : ''}
                               ${(item.type === 'color' && backgroundColor === item.color && backgroundOption === 'color') || 
