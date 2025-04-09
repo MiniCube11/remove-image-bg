@@ -8,7 +8,7 @@ type BackgroundOption = 'none' | 'blur' | 'bw' | 'color' | 'border';
 
 type ColorOption = {
   id: string;
-  type: 'color' | 'transparent' | 'effect' | 'picker';
+  type: 'color' | 'transparent' | 'effect' | 'picker' | 'original';
   label: string;
   color?: string;
   border?: boolean;
@@ -26,6 +26,7 @@ type Effect = {
     blur?: number;
     borderColor?: string;
     borderSize?: number;
+    useOriginal?: boolean;
   };
 };
 
@@ -137,6 +138,9 @@ export default function Home() {
           ctx.fillRect(x, y, size, size);
         }
       }
+    } else if (currentEffects.background.options?.useOriginal) {
+      // Draw original image as background
+      ctx.drawImage(originalImg, 0, 0);
     } else {
       // Fill with background color
       ctx.fillStyle = currentEffects.background.options?.color ?? '#ffffff';
@@ -549,6 +553,11 @@ export default function Home() {
                             label: 'Transparent'
                           },
                           { 
+                            id: 'original',
+                            type: 'original',
+                            label: 'Original Background'
+                          },
+                          { 
                             id: 'white',
                             type: 'color',
                             color: '#FFFFFF',
@@ -589,26 +598,33 @@ export default function Home() {
                                 input.addEventListener('change', async (e) => {
                                   const target = e.target as HTMLInputElement;
                                   setBackgroundColor(target.value);
-                                  await handleEffectChange('background', true, { color: target.value });
+                                  await handleEffectChange('background', true, { color: target.value, useOriginal: false });
                                 });
                                 input.click();
                               } else if (item.type === 'color') {
                                 setBackgroundColor(item.color!);
-                                await handleEffectChange('background', true, { color: item.color });
+                                await handleEffectChange('background', true, { color: item.color, useOriginal: false });
                               } else if (item.type === 'transparent') {
                                 handleEffectChange('background', false);
+                              } else if (item.type === 'original') {
+                                await handleEffectChange('background', true, { useOriginal: true });
                               }
                             }}
                             className={`w-10 h-10 rounded-full cursor-pointer transition-all relative
                               ${item.type === 'transparent' ? 'bg-[linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6),linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6)] bg-[length:12px_12px] bg-[position:0_0,6px_6px] bg-white border border-gray-200' : ''}
+                              ${item.type === 'original' ? 'overflow-hidden border border-gray-200' : ''}
                               hover:scale-110
                               ${item.border ? 'border-2 border-gray-300' : ''}
-                              ${(item.type === 'color' && backgroundColor === item.color && effects.background.enabled) || 
-                                (item.type === 'transparent' && !effects.background.enabled)
+                              ${((item.type === 'color' && backgroundColor === item.color && effects.background.enabled && !effects.background.options?.useOriginal) || 
+                                (item.type === 'transparent' && !effects.background.enabled) ||
+                                (item.type === 'original' && effects.background.enabled && effects.background.options?.useOriginal))
                                   ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}`}
                             style={{
                               background: item.type === 'color' ? item.color : 
-                                        item.type === 'picker' ? 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' : undefined
+                                        item.type === 'picker' ? 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' :
+                                        item.type === 'original' && originalImage ? `url(${originalImage})` : undefined,
+                              backgroundSize: item.type === 'original' ? 'cover' : undefined,
+                              backgroundPosition: item.type === 'original' ? 'center' : undefined,
                             }}
                             aria-label={item.label || `Select ${item.color} background`}
                           />
