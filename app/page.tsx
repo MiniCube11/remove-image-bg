@@ -531,7 +531,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="relative w-full aspect-square bg-[#F8F9FB] rounded-2xl overflow-hidden">
+                <div className="relative w-full rounded-2xl overflow-hidden ring-1 ring-black/[0.08]">
                   <div 
                     className={`absolute inset-0 ${
                       backgroundOption === 'none' && !showOriginal ? 
@@ -539,18 +539,21 @@ export default function Home() {
                       : ''
                     }`}
                   />
-                  <Image
-                    src={showOriginal ? originalImage! : processedImage}
-                    alt={showOriginal ? "Original" : "Processed"}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 768px"
-                    className="object-contain p-4 rounded-2xl relative"
-                    style={{ 
-                      backgroundColor: backgroundOption === 'none' && !showOriginal ? 'transparent' : '#F8F9FB',
-                      border: '1px solid rgba(0, 0, 0, 0.08)'
-                    }}
-                    priority
-                  />
+                  <div className="relative w-full">
+                    <Image
+                      src={showOriginal ? originalImage! : processedImage}
+                      alt={showOriginal ? "Original" : "Processed"}
+                      width={0}
+                      height={0}
+                      sizes="100vw"
+                      className="w-full h-auto"
+                      style={{ 
+                        backgroundColor: backgroundOption === 'none' && !showOriginal ? 'transparent' : '#F8F9FB'
+                      }}
+                      priority
+                      unoptimized
+                    />
+                  </div>
                 </div>
 
                 <div className="fixed right-0 top-0 h-screen w-[320px] bg-white shadow-lg p-6 overflow-y-auto">
