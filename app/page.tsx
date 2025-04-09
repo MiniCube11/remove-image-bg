@@ -545,202 +545,62 @@ export default function Home() {
                 <div className="fixed right-0 top-0 h-screen w-[320px] bg-white shadow-lg overflow-y-auto">
                   <div className="p-4">
                     {/* Background Section */}
-                    <div className="py-4 border-b border-gray-300">
-                      <h3 className="text-[16px] font-semibold text-gray-900">Background</h3>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        {[
-                          { 
-                            id: 'transparent',
-                            type: 'transparent',
-                            label: 'Transparent'
-                          },
-                          { 
-                            id: 'original',
-                            type: 'original',
-                            label: 'Original Background'
-                          },
-                          { 
-                            id: 'white',
-                            type: 'color',
-                            color: '#FFFFFF',
-                            border: true
-                          },
-                          { 
-                            id: 'black',
-                            type: 'color',
-                            color: '#000000'
-                          },
-                          { 
-                            id: 'brown',
-                            type: 'color',
-                            color: '#8B4513'
-                          },
-                          { 
-                            id: 'navy',
-                            type: 'color',
-                            color: '#000080'
-                          },
-                          { 
-                            id: 'peach',
-                            type: 'color',
-                            color: '#FFDAB9'
-                          },
-                          {
-                            id: 'custom',
-                            type: 'picker'
-                          }
-                        ].map((item) => (
-                          <button
-                            key={item.id}
-                            onClick={async (e) => {
-                              if (item.type === 'picker') {
-                                const button = e.currentTarget;
-                                const rect = button.getBoundingClientRect();
-                                
-                                const input = document.createElement('input');
-                                input.type = 'color';
-                                input.value = backgroundColor;
-                                
-                                // Position and style the input directly
-                                input.style.cssText = `
-                                  position: fixed;
-                                  left: ${rect.left - 10}px;
-                                  top: ${rect.top - 10}px;
-                                  opacity: 0;
-                                  z-index: 9999;
-                                  width: 60px;
-                                  height: 60px;
-                                  padding: 0;
-                                  border: none;
-                                  border-radius: 8px;
-                                  cursor: pointer;
-                                `;
-                                
-                                document.body.appendChild(input);
-                                
-                                // Wait for the next frame to ensure positioning is applied
-                                requestAnimationFrame(() => {
-                                  input.click();
-                                });
-                                
-                                input.addEventListener('change', async (e) => {
-                                  const target = e.target as HTMLInputElement;
-                                  setBackgroundColor(target.value);
-                                  setIsCustomBackground(true);
-                                  await handleEffectChange('background', true, { color: target.value, useOriginal: false });
-                                  if (document.body.contains(input)) {
-                                    document.body.removeChild(input);
-                                  }
-                                });
-                                
-                                input.addEventListener('click', (e) => {
-                                  e.stopPropagation();
-                                });
-                                
-                                // Clean up if they click away
-                                const handleClickOutside = (e: MouseEvent) => {
-                                  if (e.target !== input && document.body.contains(input)) {
-                                    document.body.removeChild(input);
-                                    document.removeEventListener('click', handleClickOutside);
-                                  }
-                                };
-                                
-                                setTimeout(() => {
-                                  document.addEventListener('click', handleClickOutside);
-                                }, 100);
-                              } else if (item.type === 'color') {
-                                setBackgroundColor(item.color!);
-                                setIsCustomBackground(false);
-                                await handleEffectChange('background', true, { color: item.color, useOriginal: false });
-                              } else if (item.type === 'transparent') {
-                                setIsCustomBackground(false);
-                                handleEffectChange('background', false);
-                              } else if (item.type === 'original') {
-                                setIsCustomBackground(false);
-                                await handleEffectChange('background', true, { useOriginal: true });
-                              }
-                            }}
-                            className={`w-10 h-10 rounded-full cursor-pointer transition-all relative
-                              ${item.type === 'transparent' ? 'bg-[linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6),linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6)] bg-[length:12px_12px] bg-[position:0_0,6px_6px] bg-white border border-gray-200' : ''}
-                              ${item.type === 'original' ? 'overflow-hidden border border-gray-200' : ''}
-                              hover:scale-110
-                              ${item.border ? 'border-2 border-gray-300' : ''}
-                              ${((item.type === 'color' && backgroundColor === item.color && effects.background.enabled && !effects.background.options?.useOriginal) || 
-                                (item.type === 'transparent' && !effects.background.enabled) ||
-                                (item.type === 'original' && effects.background.enabled && effects.background.options?.useOriginal) ||
-                                (item.type === 'picker' && isCustomBackground && effects.background.enabled))
-                                  ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}`}
-                            style={{
-                              background: item.type === 'color' ? item.color : 
-                                        item.type === 'picker' ? 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' :
-                                        item.type === 'original' && originalImage ? `url(${originalImage})` : undefined,
-                              backgroundSize: item.type === 'original' ? 'cover' : undefined,
-                              backgroundPosition: item.type === 'original' ? 'center' : undefined,
-                            }}
-                            aria-label={item.label || `Select ${item.color} background`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Shadow Section */}
-                    <div className="py-4 border-b border-gray-300">
-                      <button 
-                        onClick={() => handleEffectChange('border', !effects.border.enabled)}
-                        className="flex items-center justify-between w-full text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[16px] font-semibold text-gray-900">Shadow</h3>
-                          <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.border.enabled ? 'opacity-100' : 'opacity-0'}`}>
-                            <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </button>
-                      {effects.border.enabled && (
-                        <div className="mt-4 space-y-4">
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <label className="text-[14px] font-medium text-gray-700">Size</label>
-                              <span className="text-[14px] text-gray-500">{borderSize}px</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="20"
-                              max="200"
-                              step="5"
-                              value={borderSize}
-                              onChange={handleBorderSizeChange}
-                              className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[14px] font-medium text-gray-700 block mb-2">Color</label>
-                            <div className="flex gap-2">
-                              {['#FFFFFF', '#000000', '#4F46E5', '#FFC0CB', '#FFD700'].map((color) => (
-                                <button
-                                  key={color}
-                                  onClick={async () => {
-                                    setBorderColor(color);
-                                    setIsCustomBorder(false);
-                                    await handleEffectChange('border', true, { borderColor: color });
-                                  }}
-                                  className={`w-8 h-8 rounded-full cursor-pointer transition-all
-                                    ${color === '#FFFFFF' ? 'border-2 border-gray-300' : ''}
-                                    ${borderColor === color ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}
-                                    hover:scale-110`}
-                                  style={{ backgroundColor: color }}
-                                />
-                              ))}
-                              <button
-                                onClick={(e) => {
+                    <div className="border-b border-gray-300">
+                      <div className="py-4">
+                        <h3 className="text-[16px] font-semibold text-gray-900">Background</h3>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          {[
+                            { 
+                              id: 'transparent',
+                              type: 'transparent',
+                              label: 'Transparent'
+                            },
+                            { 
+                              id: 'original',
+                              type: 'original',
+                              label: 'Original Background'
+                            },
+                            { 
+                              id: 'white',
+                              type: 'color',
+                              color: '#FFFFFF',
+                              border: true
+                            },
+                            { 
+                              id: 'black',
+                              type: 'color',
+                              color: '#000000'
+                            },
+                            { 
+                              id: 'brown',
+                              type: 'color',
+                              color: '#8B4513'
+                            },
+                            { 
+                              id: 'navy',
+                              type: 'color',
+                              color: '#000080'
+                            },
+                            { 
+                              id: 'peach',
+                              type: 'color',
+                              color: '#FFDAB9'
+                            },
+                            {
+                              id: 'custom',
+                              type: 'picker'
+                            }
+                          ].map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={async (e) => {
+                                if (item.type === 'picker') {
                                   const button = e.currentTarget;
                                   const rect = button.getBoundingClientRect();
                                   
                                   const input = document.createElement('input');
                                   input.type = 'color';
-                                  input.value = borderColor;
+                                  input.value = backgroundColor;
                                   
                                   // Position and style the input directly
                                   input.style.cssText = `
@@ -766,9 +626,9 @@ export default function Home() {
                                   
                                   input.addEventListener('change', async (e) => {
                                     const target = e.target as HTMLInputElement;
-                                    setBorderColor(target.value);
-                                    setIsCustomBorder(true);
-                                    await handleEffectChange('border', true, { borderColor: target.value });
+                                    setBackgroundColor(target.value);
+                                    setIsCustomBackground(true);
+                                    await handleEffectChange('background', true, { color: target.value, useOriginal: false });
                                     if (document.body.contains(input)) {
                                       document.body.removeChild(input);
                                     }
@@ -789,66 +649,214 @@ export default function Home() {
                                   setTimeout(() => {
                                     document.addEventListener('click', handleClickOutside);
                                   }, 100);
-                                }}
-                                className={`w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 ${
-                                  isCustomBorder ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''
-                                }`}
-                                style={{ background: 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' }}
-                              />
+                                } else if (item.type === 'color') {
+                                  setBackgroundColor(item.color!);
+                                  setIsCustomBackground(false);
+                                  await handleEffectChange('background', true, { color: item.color, useOriginal: false });
+                                } else if (item.type === 'transparent') {
+                                  setIsCustomBackground(false);
+                                  handleEffectChange('background', false);
+                                } else if (item.type === 'original') {
+                                  setIsCustomBackground(false);
+                                  await handleEffectChange('background', true, { useOriginal: true });
+                                }
+                              }}
+                              className={`w-10 h-10 rounded-full cursor-pointer transition-all relative
+                                ${item.type === 'transparent' ? 'bg-[linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6),linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6)] bg-[length:12px_12px] bg-[position:0_0,6px_6px] bg-white border border-gray-200' : ''}
+                                ${item.type === 'original' ? 'overflow-hidden border border-gray-200' : ''}
+                                hover:scale-110
+                                ${item.border ? 'border-2 border-gray-300' : ''}
+                                ${((item.type === 'color' && backgroundColor === item.color && effects.background.enabled && !effects.background.options?.useOriginal) || 
+                                  (item.type === 'transparent' && !effects.background.enabled) ||
+                                  (item.type === 'original' && effects.background.enabled && effects.background.options?.useOriginal) ||
+                                  (item.type === 'picker' && isCustomBackground && effects.background.enabled))
+                                    ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}`}
+                              style={{
+                                background: item.type === 'color' ? item.color : 
+                                          item.type === 'picker' ? 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' :
+                                          item.type === 'original' && originalImage ? `url(${originalImage})` : undefined,
+                                backgroundSize: item.type === 'original' ? 'cover' : undefined,
+                                backgroundPosition: item.type === 'original' ? 'center' : undefined,
+                              }}
+                              aria-label={item.label || `Select ${item.color} background`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Shadow Section */}
+                    <div className="border-b border-gray-300">
+                      <div className="py-4">
+                        <button 
+                          onClick={() => handleEffectChange('border', !effects.border.enabled)}
+                          className="flex items-center justify-between w-full text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-[16px] font-semibold text-gray-900">Shadow</h3>
+                            <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.border.enabled ? 'opacity-100' : 'opacity-0'}`}>
+                              <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        </button>
+                        {effects.border.enabled && (
+                          <div className="mt-4 space-y-4">
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="text-[14px] font-medium text-gray-700">Size</label>
+                                <span className="text-[14px] text-gray-500">{borderSize}px</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="20"
+                                max="200"
+                                step="5"
+                                value={borderSize}
+                                onChange={handleBorderSizeChange}
+                                className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[14px] font-medium text-gray-700 block mb-2">Color</label>
+                              <div className="flex gap-2">
+                                {['#FFFFFF', '#000000', '#4F46E5', '#FFC0CB', '#FFD700'].map((color) => (
+                                  <button
+                                    key={color}
+                                    onClick={async () => {
+                                      setBorderColor(color);
+                                      setIsCustomBorder(false);
+                                      await handleEffectChange('border', true, { borderColor: color });
+                                    }}
+                                    className={`w-8 h-8 rounded-full cursor-pointer transition-all
+                                      ${color === '#FFFFFF' ? 'border-2 border-gray-300' : ''}
+                                      ${borderColor === color ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}
+                                      hover:scale-110`}
+                                    style={{ backgroundColor: color }}
+                                  />
+                                ))}
+                                <button
+                                  onClick={(e) => {
+                                    const button = e.currentTarget;
+                                    const rect = button.getBoundingClientRect();
+                                    
+                                    const input = document.createElement('input');
+                                    input.type = 'color';
+                                    input.value = borderColor;
+                                    
+                                    // Position and style the input directly
+                                    input.style.cssText = `
+                                      position: fixed;
+                                      left: ${rect.left - 10}px;
+                                      top: ${rect.top - 10}px;
+                                      opacity: 0;
+                                      z-index: 9999;
+                                      width: 60px;
+                                      height: 60px;
+                                      padding: 0;
+                                      border: none;
+                                      border-radius: 8px;
+                                      cursor: pointer;
+                                    `;
+                                    
+                                    document.body.appendChild(input);
+                                    
+                                    // Wait for the next frame to ensure positioning is applied
+                                    requestAnimationFrame(() => {
+                                      input.click();
+                                    });
+                                    
+                                    input.addEventListener('change', async (e) => {
+                                      const target = e.target as HTMLInputElement;
+                                      setBorderColor(target.value);
+                                      setIsCustomBorder(true);
+                                      await handleEffectChange('border', true, { borderColor: target.value });
+                                      if (document.body.contains(input)) {
+                                        document.body.removeChild(input);
+                                      }
+                                    });
+                                    
+                                    input.addEventListener('click', (e) => {
+                                      e.stopPropagation();
+                                    });
+                                    
+                                    // Clean up if they click away
+                                    const handleClickOutside = (e: MouseEvent) => {
+                                      if (e.target !== input && document.body.contains(input)) {
+                                        document.body.removeChild(input);
+                                        document.removeEventListener('click', handleClickOutside);
+                                      }
+                                    };
+                                    
+                                    setTimeout(() => {
+                                      document.addEventListener('click', handleClickOutside);
+                                    }, 100);
+                                  }}
+                                  className={`w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 ${
+                                    isCustomBorder ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''
+                                  }`}
+                                  style={{ background: 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Blur Section */}
-                    <div className="py-4 border-b border-gray-300">
-                      <button 
-                        onClick={() => handleEffectChange('blur', !effects.blur.enabled)}
-                        className="flex items-center justify-between w-full text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[16px] font-semibold text-gray-900">Blur</h3>
-                          <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.blur.enabled ? 'opacity-100' : 'opacity-0'}`}>
-                            <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
+                    <div className="border-b border-gray-300">
+                      <div className="py-4">
+                        <button 
+                          onClick={() => handleEffectChange('blur', !effects.blur.enabled)}
+                          className="flex items-center justify-between w-full text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-[16px] font-semibold text-gray-900">Blur</h3>
+                            <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.blur.enabled ? 'opacity-100' : 'opacity-0'}`}>
+                              <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                      {effects.blur.enabled && (
-                        <div className="mt-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-[14px] font-medium text-gray-700">Intensity</label>
-                            <span className="text-[14px] text-gray-500">{blurIntensity}px</span>
+                        </button>
+                        {effects.blur.enabled && (
+                          <div className="mt-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-[14px] font-medium text-gray-700">Intensity</label>
+                              <span className="text-[14px] text-gray-500">{blurIntensity}px</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="50"
+                              value={blurIntensity}
+                              onChange={handleBlurChange}
+                              className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                            />
                           </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="50"
-                            value={blurIntensity}
-                            onChange={handleBlurChange}
-                            className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer"
-                          />
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     {/* B&W Section */}
-                    <div className="py-4">
-                      <button 
-                        onClick={() => handleEffectChange('bw', !effects.bw.enabled)}
-                        className="flex items-center justify-between w-full text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[16px] font-semibold text-gray-900">Black & White</h3>
-                          <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.bw.enabled ? 'opacity-100' : 'opacity-0'}`}>
-                            <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
+                    <div>
+                      <div className="py-4">
+                        <button 
+                          onClick={() => handleEffectChange('bw', !effects.bw.enabled)}
+                          className="flex items-center justify-between w-full text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-[16px] font-semibold text-gray-900">Black & White</h3>
+                            <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.bw.enabled ? 'opacity-100' : 'opacity-0'}`}>
+                              <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
                           </div>
-                        </div>
-                      </button>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
