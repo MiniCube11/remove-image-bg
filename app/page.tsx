@@ -16,6 +16,26 @@ type ColorOption = {
   onClick?: () => void;
 };
 
+type EffectType = 'background' | 'border' | 'blur' | 'bw';
+
+type Effect = {
+  type: EffectType;
+  enabled: boolean;
+  options?: {
+    color?: string;
+    blur?: number;
+    borderColor?: string;
+    borderSize?: number;
+  };
+};
+
+type Effects = {
+  background: Effect;
+  border: Effect;
+  blur: Effect;
+  bw: Effect;
+};
+
 export default function Home() {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
@@ -23,7 +43,12 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState<string>('');
-  const [backgroundOption, setBackgroundOption] = useState<BackgroundOption>('none');
+  const [effects, setEffects] = useState<Effects>({
+    background: { type: 'background', enabled: false, options: { color: '#ffffff' } },
+    border: { type: 'border', enabled: false, options: { borderColor: '#ffffff', borderSize: 40 } },
+    blur: { type: 'blur', enabled: false, options: { blur: 10 } },
+    bw: { type: 'bw', enabled: false }
+  });
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [blurIntensity, setBlurIntensity] = useState(10);
   const [borderSize, setBorderSize] = useState(40);
@@ -81,14 +106,8 @@ export default function Home() {
 
   const applyBackgroundEffect = useCallback(async (
     originalUrl: string, 
-    foregroundUrl: string, 
-    option: BackgroundOption,
-    options?: {
-      color?: string;
-      blur?: number;
-      borderColor?: string;
-      borderSize?: number;
-    }
+    foregroundUrl: string,
+    currentEffects: Effects
   ) => {
     if (!canvasRef.current) return;
 
@@ -109,8 +128,8 @@ export default function Home() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (option === 'none') {
-      // Draw checkerboard pattern for transparent background
+    // Draw checkerboard pattern for transparent background if no background effect is enabled
+    if (!currentEffects.background.enabled) {
       const size = 32; // Size of each square
       for (let x = 0; x < canvas.width; x += size) {
         for (let y = 0; y < canvas.height; y += size) {
@@ -118,16 +137,71 @@ export default function Home() {
           ctx.fillRect(x, y, size, size);
         }
       }
-      // Draw the foreground image
-      ctx.drawImage(foregroundImg, 0, 0);
-    } else if (option === 'border') {
+    } else {
+      // Fill with background color
+      ctx.fillStyle = currentEffects.background.options?.color ?? '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Apply blur effect if enabled
+    if (currentEffects.blur.enabled) {
+      const bgCanvas = document.createElement('canvas');
+      const bgCtx = bgCanvas.getContext('2d');
+      if (bgCtx) {
+        bgCanvas.width = canvas.width;
+        bgCanvas.height = canvas.height;
+        
+        // First, draw the current canvas state (background) to the temporary canvas
+        bgCtx.drawImage(canvas, 0, 0);
+        
+        // Apply blur to the background
+        ctx.filter = `blur(${currentEffects.blur.options?.blur ?? 10}px)`;
+        ctx.drawImage(bgCanvas, 0, 0);
+        ctx.filter = 'none';
+        
+        // Clear the temporary canvas
+        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        
+        // Draw the foreground onto the temporary canvas
+        bgCtx.drawImage(foregroundImg, 0, 0);
+        
+        // Use the foreground as a mask
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.drawImage(bgCanvas, 0, 0);
+        
+        // Reset composite operation and draw the foreground
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+
+    // Apply black & white effect if enabled
+    if (currentEffects.bw.enabled) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        data[i] = avg;     // red
+        data[i + 1] = avg; // green
+        data[i + 2] = avg; // blue
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    // Draw the foreground image
+    ctx.drawImage(foregroundImg, 0, 0);
+
+    // Apply border effect if enabled
+    if (currentEffects.border.enabled) {
+      const borderSize = currentEffects.border.options?.borderSize ?? 40;
+      const borderColor = currentEffects.border.options?.borderColor ?? '#ffffff';
+      
       // Create temporary canvas for the border effect
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) return;
 
-      // Calculate border thickness (scaled based on the slider value)
-      const thickness = Math.max(1, Math.floor((options?.borderSize ?? borderSize) / 8));
+      // Calculate border thickness
+      const thickness = Math.max(1, Math.floor(borderSize / 8));
       
       // Set canvas dimensions with padding for the border
       tempCanvas.width = canvas.width + thickness * 2;
@@ -159,18 +233,15 @@ export default function Home() {
       // Clear the temporary canvas
       tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-      // Fill the entire temporary canvas with the border color
-      tempCtx.fillStyle = options?.borderColor ?? borderColor;
+      // Fill with border color
+      tempCtx.fillStyle = borderColor;
       tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
       // Use the mask to cut out the border shape
       tempCtx.globalCompositeOperation = 'destination-in';
       tempCtx.drawImage(maskCanvas, 0, 0);
 
-      // Clear the main canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw the colored border
+      // Draw the border on the main canvas
       ctx.drawImage(
         tempCanvas, 
         -thickness, 
@@ -179,53 +250,7 @@ export default function Home() {
         tempCanvas.height
       );
 
-      // Draw the original image on top
-      ctx.drawImage(foregroundImg, 0, 0);
-    } else {
-      // Fill with background color first
-      ctx.fillStyle = options?.color ?? backgroundColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      if (option === 'blur') {
-        // Step 1: Create and blur the background
-        const bgCanvas = document.createElement('canvas');
-        const bgCtx = bgCanvas.getContext('2d');
-        if (!bgCtx) return;
-        bgCanvas.width = canvas.width;
-        bgCanvas.height = canvas.height;
-
-        // Apply blur to the entire background
-        bgCtx.filter = `blur(${options?.blur ?? blurIntensity}px)`;
-        bgCtx.drawImage(originalImg, 0, 0);
-        bgCtx.filter = 'none';
-
-        // Step 2: Draw blurred background to main canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(bgCanvas, 0, 0);
-
-        // Step 3: Mask out the subject area (punch a hole)
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.drawImage(foregroundImg, 0, 0);
-
-        // Step 4: Restore blend mode and draw original subject
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(foregroundImg, 0, 0);
-      } else if (option === 'bw') {
-        // Draw original image
-        ctx.drawImage(originalImg, 0, 0);
-        
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          data[i] = avg;     // red
-          data[i + 1] = avg; // green
-          data[i + 2] = avg; // blue
-        }
-        ctx.putImageData(imageData, 0, 0);
-      }
-
-      // Draw foreground on top
+      // Draw the foreground image again on top
       ctx.drawImage(foregroundImg, 0, 0);
     }
 
@@ -236,7 +261,78 @@ export default function Home() {
       }, 'image/png');
     });
     return URL.createObjectURL(blob);
-  }, [backgroundColor, blurIntensity, borderColor, borderSize]);
+  }, []);
+
+  const handleEffectChange = useCallback(async (effectType: keyof Effects, enabled: boolean, options?: Effect['options']) => {
+    if (!originalImage || !processedImageNoBg) return;
+    
+    setEffects(prev => ({
+      ...prev,
+      [effectType]: {
+        ...prev[effectType],
+        enabled,
+        options: {
+          ...prev[effectType].options,
+          ...options
+        }
+      }
+    }));
+    
+    const newProcessedUrl = await applyBackgroundEffect(originalImage, processedImageNoBg, {
+      ...effects,
+      [effectType]: {
+        ...effects[effectType],
+        enabled,
+        options: {
+          ...effects[effectType].options,
+          ...options
+        }
+      }
+    });
+    
+    if (newProcessedUrl) {
+      setProcessedImage(newProcessedUrl);
+    }
+  }, [originalImage, processedImageNoBg, effects, applyBackgroundEffect]);
+
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    setBackgroundColor(newColor);
+    if (colorChangeTimeoutRef.current) {
+      clearTimeout(colorChangeTimeoutRef.current);
+    }
+    colorChangeTimeoutRef.current = setTimeout(() => {
+      handleEffectChange('background', true, { color: newColor });
+    }, 150);
+  };
+
+  const handleBlurChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newBlur = Number(e.target.value);
+    setBlurIntensity(newBlur);
+    handleEffectChange('blur', true, { blur: newBlur });
+  };
+
+  const handleBorderColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    setBorderColor(newColor);
+    if (borderChangeTimeoutRef.current) {
+      clearTimeout(borderChangeTimeoutRef.current);
+    }
+    borderChangeTimeoutRef.current = setTimeout(() => {
+      handleEffectChange('border', true, { borderColor: newColor });
+    }, 150);
+  };
+
+  const handleBorderSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSize = Number(e.target.value);
+    setBorderSize(newSize);
+    if (borderChangeTimeoutRef.current) {
+      clearTimeout(borderChangeTimeoutRef.current);
+    }
+    borderChangeTimeoutRef.current = setTimeout(() => {
+      handleEffectChange('border', true, { borderSize: newSize });
+    }, 150);
+  };
 
   const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
@@ -313,69 +409,6 @@ export default function Home() {
 
     // Send image to worker for processing
     workerRef.current?.postMessage({ imageUrl });
-  };
-
-  const handleBackgroundChange = useCallback(async (option: BackgroundOption, newOptions?: {
-    color?: string;
-    blur?: number;
-    borderColor?: string;
-    borderSize?: number;
-  }) => {
-    if (!originalImage || !processedImageNoBg) return;
-    
-    setBackgroundOption(option);
-    
-    if (option === 'none') {
-      setProcessedImage(processedImageNoBg);
-    } else {
-      const newProcessedUrl = await applyBackgroundEffect(originalImage, processedImageNoBg, option, newOptions);
-      if (newProcessedUrl) {
-        setProcessedImage(newProcessedUrl);
-      }
-    }
-  }, [originalImage, processedImageNoBg, applyBackgroundEffect]);
-
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBackgroundColor(e.target.value);
-    if (colorChangeTimeoutRef.current) {
-      clearTimeout(colorChangeTimeoutRef.current);
-    }
-    colorChangeTimeoutRef.current = setTimeout(() => {
-      if (backgroundOption === 'color') {
-        handleBackgroundChange('color');
-      }
-    }, 150);
-  };
-
-  const handleBlurChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBlurIntensity(Number(e.target.value));
-    if (backgroundOption === 'blur') {
-      handleBackgroundChange('blur');
-    }
-  };
-
-  const handleBorderColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBorderColor(e.target.value);
-    if (borderChangeTimeoutRef.current) {
-      clearTimeout(borderChangeTimeoutRef.current);
-    }
-    borderChangeTimeoutRef.current = setTimeout(() => {
-      if (backgroundOption === 'border') {
-        handleBackgroundChange('border');
-      }
-    }, 150);
-  };
-
-  const handleBorderSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBorderSize(Number(e.target.value));
-    if (borderChangeTimeoutRef.current) {
-      clearTimeout(borderChangeTimeoutRef.current);
-    }
-    borderChangeTimeoutRef.current = setTimeout(() => {
-      if (backgroundOption === 'border') {
-        handleBackgroundChange('border');
-      }
-    }, 150);
   };
 
   const handleSelectClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -481,7 +514,7 @@ export default function Home() {
                 <div className="relative w-full rounded-2xl overflow-hidden ring-1 ring-black/[0.08]">
                   <div 
                     className={`absolute inset-0 ${
-                      backgroundOption === 'none' && !showOriginal ? 
+                      !effects.background.enabled ? 
                       'bg-[linear-gradient(45deg,#F5F7FA_25%,transparent_25%,transparent_75%,#F5F7FA_75%,#F5F7FA),linear-gradient(45deg,#F5F7FA_25%,transparent_25%,transparent_75%,#F5F7FA_75%,#F5F7FA)] bg-[length:32px_32px] bg-[position:0_0,16px_16px] bg-white' 
                       : ''
                     }`}
@@ -495,7 +528,7 @@ export default function Home() {
                       sizes="100vw"
                       className="w-full h-auto"
                       style={{ 
-                        backgroundColor: backgroundOption === 'none' && !showOriginal ? 'transparent' : '#F8F9FB'
+                        backgroundColor: !effects.background.enabled && !showOriginal ? 'transparent' : '#F8F9FB'
                       }}
                       priority
                       unoptimized
@@ -556,22 +589,22 @@ export default function Home() {
                                 input.addEventListener('change', async (e) => {
                                   const target = e.target as HTMLInputElement;
                                   setBackgroundColor(target.value);
-                                  await handleBackgroundChange('color', { color: target.value });
+                                  await handleEffectChange('background', true, { color: target.value });
                                 });
                                 input.click();
                               } else if (item.type === 'color') {
                                 setBackgroundColor(item.color!);
-                                await handleBackgroundChange('color', { color: item.color });
+                                await handleEffectChange('background', true, { color: item.color });
                               } else if (item.type === 'transparent') {
-                                handleBackgroundChange('none');
+                                handleEffectChange('background', false);
                               }
                             }}
                             className={`w-10 h-10 rounded-full cursor-pointer transition-all relative
                               ${item.type === 'transparent' ? 'bg-[linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6),linear-gradient(45deg,#F3F4F6_25%,transparent_25%,transparent_75%,#F3F4F6_75%,#F3F4F6)] bg-[length:12px_12px] bg-[position:0_0,6px_6px] bg-white border border-gray-200' : ''}
                               hover:scale-110
                               ${item.border ? 'border-2 border-gray-300' : ''}
-                              ${(item.type === 'color' && backgroundColor === item.color && backgroundOption === 'color') || 
-                                (item.type === 'transparent' && backgroundOption === 'none')
+                              ${(item.type === 'color' && backgroundColor === item.color && effects.background.enabled) || 
+                                (item.type === 'transparent' && !effects.background.enabled)
                                   ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}`}
                             style={{
                               background: item.type === 'color' ? item.color : 
@@ -586,15 +619,17 @@ export default function Home() {
                     {/* Shadow Section */}
                     <div>
                       <button 
-                        onClick={() => handleBackgroundChange('border')}
+                        onClick={() => handleEffectChange('border', !effects.border.enabled)}
                         className="flex items-center justify-between w-full text-left mb-4"
                       >
                         <h3 className="text-[16px] font-semibold">Shadow</h3>
-                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.border.enabled ? 'opacity-100' : 'opacity-0'}`}>
+                          <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
                       </button>
-                      {backgroundOption === 'border' && (
+                      {effects.border.enabled && (
                         <div className="space-y-4">
                           <div>
                             <div className="flex items-center justify-between mb-2">
@@ -619,7 +654,7 @@ export default function Home() {
                                   key={color}
                                   onClick={async () => {
                                     setBorderColor(color);
-                                    await handleBackgroundChange('border', { borderColor: color });
+                                    await handleEffectChange('border', true, { borderColor: color });
                                   }}
                                   className={`w-8 h-8 rounded-full cursor-pointer transition-all
                                     ${color === '#FFFFFF' ? 'border-2 border-gray-300' : ''}
@@ -636,7 +671,7 @@ export default function Home() {
                                   input.addEventListener('change', async (e) => {
                                     const target = e.target as HTMLInputElement;
                                     setBorderColor(target.value);
-                                    await handleBackgroundChange('border', { borderColor: target.value });
+                                    await handleEffectChange('border', true, { borderColor: target.value });
                                   });
                                   input.click();
                                 }}
@@ -652,15 +687,17 @@ export default function Home() {
                     {/* Blur Section */}
                     <div>
                       <button 
-                        onClick={() => handleBackgroundChange('blur')}
+                        onClick={() => handleEffectChange('blur', !effects.blur.enabled)}
                         className="flex items-center justify-between w-full text-left mb-4"
                       >
                         <h3 className="text-[16px] font-semibold">Blur</h3>
-                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.blur.enabled ? 'opacity-100' : 'opacity-0'}`}>
+                          <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
                       </button>
-                      {backgroundOption === 'blur' && (
+                      {effects.blur.enabled && (
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="text-[14px] font-medium text-gray-700">Intensity</label>
@@ -681,11 +718,11 @@ export default function Home() {
                     {/* B&W Section */}
                     <div>
                       <button 
-                        onClick={() => handleBackgroundChange('bw')}
+                        onClick={() => handleEffectChange('bw', !effects.bw.enabled)}
                         className="flex items-center justify-between w-full text-left"
                       >
                         <h3 className="text-[16px] font-semibold">Black & White</h3>
-                        <div className={`w-6 h-6 rounded-sm transition-opacity ${backgroundOption === 'bw' ? 'opacity-100' : 'opacity-0'}`}>
+                        <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.bw.enabled ? 'opacity-100' : 'opacity-0'}`}>
                           <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
