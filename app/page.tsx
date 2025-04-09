@@ -628,7 +628,9 @@ export default function Home() {
                                   setBackgroundColor(target.value);
                                   setIsCustomBackground(true);
                                   await handleEffectChange('background', true, { color: target.value, useOriginal: false });
-                                  document.body.removeChild(input);
+                                  if (document.body.contains(input)) {
+                                    document.body.removeChild(input);
+                                  }
                                 });
                                 
                                 input.addEventListener('click', (e) => {
@@ -637,7 +639,7 @@ export default function Home() {
                                 
                                 // Clean up if they click away
                                 const handleClickOutside = (e: MouseEvent) => {
-                                  if (e.target !== input) {
+                                  if (e.target !== input && document.body.contains(input)) {
                                     document.body.removeChild(input);
                                     document.removeEventListener('click', handleClickOutside);
                                   }
@@ -765,7 +767,9 @@ export default function Home() {
                                     setBorderColor(target.value);
                                     setIsCustomBorder(true);
                                     await handleEffectChange('border', true, { borderColor: target.value });
-                                    document.body.removeChild(input);
+                                    if (document.body.contains(input)) {
+                                      document.body.removeChild(input);
+                                    }
                                   });
                                   
                                   input.addEventListener('click', (e) => {
@@ -774,7 +778,7 @@ export default function Home() {
                                   
                                   // Clean up if they click away
                                   const handleClickOutside = (e: MouseEvent) => {
-                                    if (e.target !== input) {
+                                    if (e.target !== input && document.body.contains(input)) {
                                       document.body.removeChild(input);
                                       document.removeEventListener('click', handleClickOutside);
                                     }
