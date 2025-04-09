@@ -452,59 +452,6 @@ export default function Home() {
           {processedImage && (
             <>
               <div className="flex flex-col items-center w-full">
-                <div className="flex gap-3 flex-wrap justify-center mb-6">
-                  <button
-                    onClick={() => handleBackgroundChange('none')}
-                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                      backgroundOption === 'none'
-                        ? 'bg-[#4F46E5] text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    No Background
-                  </button>
-                  <button
-                    onClick={() => handleBackgroundChange('border')}
-                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                      backgroundOption === 'border'
-                        ? 'bg-[#4F46E5] text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Sticker Border
-                  </button>
-                  <button
-                    onClick={() => handleBackgroundChange('blur')}
-                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                      backgroundOption === 'blur'
-                        ? 'bg-[#4F46E5] text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Blurred Background
-                  </button>
-                  <button
-                    onClick={() => handleBackgroundChange('bw')}
-                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                      backgroundOption === 'bw'
-                        ? 'bg-[#4F46E5] text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Black & White Background
-                  </button>
-                  <button
-                    onClick={() => handleBackgroundChange('color')}
-                    className={`px-5 py-2.5 rounded-md text-[14px] font-medium ${
-                      backgroundOption === 'color'
-                        ? 'bg-[#4F46E5] text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Custom Color
-                  </button>
-                </div>
-
                 {/* Before/After Toggle */}
                 <div className="flex justify-end w-full mb-2">
                   <div className="flex bg-[#F1F2F4] rounded-lg p-0.5">
