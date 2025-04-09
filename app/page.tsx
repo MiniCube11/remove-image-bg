@@ -590,17 +590,59 @@ export default function Home() {
                         ].map((item) => (
                           <button
                             key={item.id}
-                            onClick={async () => {
+                            onClick={async (e) => {
                               if (item.type === 'picker') {
+                                const button = e.currentTarget;
+                                const rect = button.getBoundingClientRect();
+                                
                                 const input = document.createElement('input');
                                 input.type = 'color';
                                 input.value = backgroundColor;
+                                
+                                // Position and style the input directly
+                                input.style.cssText = `
+                                  position: fixed;
+                                  left: ${rect.left - 10}px;
+                                  top: ${rect.top - 10}px;
+                                  opacity: 0;
+                                  z-index: 9999;
+                                  width: 60px;
+                                  height: 60px;
+                                  padding: 0;
+                                  border: none;
+                                  border-radius: 8px;
+                                  cursor: pointer;
+                                `;
+                                
+                                document.body.appendChild(input);
+                                
+                                // Wait for the next frame to ensure positioning is applied
+                                requestAnimationFrame(() => {
+                                  input.click();
+                                });
+                                
                                 input.addEventListener('change', async (e) => {
                                   const target = e.target as HTMLInputElement;
                                   setBackgroundColor(target.value);
                                   await handleEffectChange('background', true, { color: target.value, useOriginal: false });
+                                  document.body.removeChild(input);
                                 });
-                                input.click();
+                                
+                                input.addEventListener('click', (e) => {
+                                  e.stopPropagation();
+                                });
+                                
+                                // Clean up if they click away
+                                const handleClickOutside = (e: MouseEvent) => {
+                                  if (e.target !== input) {
+                                    document.body.removeChild(input);
+                                    document.removeEventListener('click', handleClickOutside);
+                                  }
+                                };
+                                
+                                setTimeout(() => {
+                                  document.addEventListener('click', handleClickOutside);
+                                }, 100);
                               } else if (item.type === 'color') {
                                 setBackgroundColor(item.color!);
                                 await handleEffectChange('background', true, { color: item.color, useOriginal: false });
@@ -680,16 +722,58 @@ export default function Home() {
                                 />
                               ))}
                               <button
-                                onClick={() => {
+                                onClick={(e) => {
+                                  const button = e.currentTarget;
+                                  const rect = button.getBoundingClientRect();
+                                  
                                   const input = document.createElement('input');
                                   input.type = 'color';
                                   input.value = borderColor;
+                                  
+                                  // Position and style the input directly
+                                  input.style.cssText = `
+                                    position: fixed;
+                                    left: ${rect.left - 10}px;
+                                    top: ${rect.top - 10}px;
+                                    opacity: 0;
+                                    z-index: 9999;
+                                    width: 60px;
+                                    height: 60px;
+                                    padding: 0;
+                                    border: none;
+                                    border-radius: 8px;
+                                    cursor: pointer;
+                                  `;
+                                  
+                                  document.body.appendChild(input);
+                                  
+                                  // Wait for the next frame to ensure positioning is applied
+                                  requestAnimationFrame(() => {
+                                    input.click();
+                                  });
+                                  
                                   input.addEventListener('change', async (e) => {
                                     const target = e.target as HTMLInputElement;
                                     setBorderColor(target.value);
                                     await handleEffectChange('border', true, { borderColor: target.value });
+                                    document.body.removeChild(input);
                                   });
-                                  input.click();
+                                  
+                                  input.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                  });
+                                  
+                                  // Clean up if they click away
+                                  const handleClickOutside = (e: MouseEvent) => {
+                                    if (e.target !== input) {
+                                      document.body.removeChild(input);
+                                      document.removeEventListener('click', handleClickOutside);
+                                    }
+                                  };
+                                  
+                                  setTimeout(() => {
+                                    document.addEventListener('click', handleClickOutside);
+                                  }, 100);
                                 }}
                                 className="w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110"
                                 style={{ background: 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' }}
