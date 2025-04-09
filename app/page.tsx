@@ -526,7 +526,7 @@ export default function Home() {
                     }`}
                   />
                   <div className="relative w-full">
-                    <Image
+        <Image
                       src={showOriginal ? originalImage! : processedImage}
                       alt={showOriginal ? "Original" : "Processed"}
                       width={0}
@@ -536,17 +536,17 @@ export default function Home() {
                       style={{ 
                         backgroundColor: !effects.background.enabled && !showOriginal ? 'transparent' : '#F8F9FB'
                       }}
-                      priority
+          priority
                       unoptimized
                     />
                   </div>
                 </div>
 
-                <div className="fixed right-0 top-0 h-screen w-[320px] bg-white shadow-lg p-6 overflow-y-auto">
-                  <div className="space-y-6">
+                <div className="fixed right-0 top-0 h-screen w-[320px] bg-white shadow-lg overflow-y-auto">
+                  <div className="p-4">
                     {/* Background Section */}
-                    <div>
-                      <h3 className="text-[16px] font-semibold mb-4">Background</h3>
+                    <div className="py-3 border-b border-gray-100">
+                      <h3 className="text-[16px] font-semibold text-gray-900 mb-3">Background</h3>
                       <div className="flex flex-wrap gap-3">
                         {[
                           { 
@@ -684,16 +684,18 @@ export default function Home() {
                     </div>
 
                     {/* Shadow Section */}
-                    <div>
+                    <div className="py-3 border-b border-gray-100">
                       <button 
                         onClick={() => handleEffectChange('border', !effects.border.enabled)}
-                        className="flex items-center justify-between w-full text-left mb-4"
+                        className="flex items-center justify-between w-full text-left mb-3"
                       >
-                        <h3 className="text-[16px] font-semibold">Shadow</h3>
-                        <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.border.enabled ? 'opacity-100' : 'opacity-0'}`}>
-                          <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-[16px] font-semibold text-gray-900">Shadow</h3>
+                          <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.border.enabled ? 'opacity-100' : 'opacity-0'}`}>
+                            <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
                         </div>
                       </button>
                       {effects.border.enabled && (
@@ -800,20 +802,22 @@ export default function Home() {
                     </div>
 
                     {/* Blur Section */}
-                    <div>
+                    <div className="py-3 border-b border-gray-100">
                       <button 
                         onClick={() => handleEffectChange('blur', !effects.blur.enabled)}
-                        className="flex items-center justify-between w-full text-left mb-4"
+                        className="flex items-center justify-between w-full text-left"
                       >
-                        <h3 className="text-[16px] font-semibold">Blur</h3>
-                        <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.blur.enabled ? 'opacity-100' : 'opacity-0'}`}>
-                          <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-[16px] font-semibold text-gray-900">Blur</h3>
+                          <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.blur.enabled ? 'opacity-100' : 'opacity-0'}`}>
+                            <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
                         </div>
                       </button>
                       {effects.blur.enabled && (
-                        <div>
+                        <div className="mt-3">
                           <div className="flex items-center justify-between mb-2">
                             <label className="text-[14px] font-medium text-gray-700">Intensity</label>
                             <span className="text-[14px] text-gray-500">{blurIntensity}px</span>
@@ -831,16 +835,18 @@ export default function Home() {
                     </div>
 
                     {/* B&W Section */}
-                    <div>
+                    <div className="py-3">
                       <button 
                         onClick={() => handleEffectChange('bw', !effects.bw.enabled)}
                         className="flex items-center justify-between w-full text-left"
                       >
-                        <h3 className="text-[16px] font-semibold">Black & White</h3>
-                        <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.bw.enabled ? 'opacity-100' : 'opacity-0'}`}>
-                          <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-[16px] font-semibold text-gray-900">Black & White</h3>
+                          <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.bw.enabled ? 'opacity-100' : 'opacity-0'}`}>
+                            <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
                         </div>
                       </button>
                     </div>
