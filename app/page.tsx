@@ -545,9 +545,9 @@ export default function Home() {
                 <div className="fixed right-0 top-0 h-screen w-[320px] bg-white shadow-lg overflow-y-auto">
                   <div className="p-4">
                     {/* Background Section */}
-                    <div className="py-3 border-b border-gray-100">
-                      <h3 className="text-[16px] font-semibold text-gray-900 mb-3">Background</h3>
-                      <div className="flex flex-wrap gap-3">
+                    <div className="py-4 border-b border-gray-300">
+                      <h3 className="text-[16px] font-semibold text-gray-900">Background</h3>
+                      <div className="mt-4 flex flex-wrap gap-3">
                         {[
                           { 
                             id: 'transparent',
@@ -684,10 +684,10 @@ export default function Home() {
                     </div>
 
                     {/* Shadow Section */}
-                    <div className="py-3 border-b border-gray-100">
+                    <div className="py-4 border-b border-gray-300">
                       <button 
                         onClick={() => handleEffectChange('border', !effects.border.enabled)}
-                        className="flex items-center justify-between w-full text-left mb-3"
+                        className="flex items-center justify-between w-full text-left"
                       >
                         <div className="flex items-center gap-2">
                           <h3 className="text-[16px] font-semibold text-gray-900">Shadow</h3>
@@ -699,7 +699,7 @@ export default function Home() {
                         </div>
                       </button>
                       {effects.border.enabled && (
-                        <div className="space-y-4">
+                        <div className="mt-4 space-y-4">
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <label className="text-[14px] font-medium text-gray-700">Size</label>
@@ -802,7 +802,7 @@ export default function Home() {
                     </div>
 
                     {/* Blur Section */}
-                    <div className="py-3 border-b border-gray-100">
+                    <div className="py-4 border-b border-gray-300">
                       <button 
                         onClick={() => handleEffectChange('blur', !effects.blur.enabled)}
                         className="flex items-center justify-between w-full text-left"
@@ -817,7 +817,7 @@ export default function Home() {
                         </div>
                       </button>
                       {effects.blur.enabled && (
-                        <div className="mt-3">
+                        <div className="mt-4">
                           <div className="flex items-center justify-between mb-2">
                             <label className="text-[14px] font-medium text-gray-700">Intensity</label>
                             <span className="text-[14px] text-gray-500">{blurIntensity}px</span>
@@ -835,7 +835,7 @@ export default function Home() {
                     </div>
 
                     {/* B&W Section */}
-                    <div className="py-3">
+                    <div className="py-4">
                       <button 
                         onClick={() => handleEffectChange('bw', !effects.bw.enabled)}
                         className="flex items-center justify-between w-full text-left"
