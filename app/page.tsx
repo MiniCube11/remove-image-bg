@@ -61,6 +61,8 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [isCustomBackground, setIsCustomBackground] = useState(false);
+  const [isCustomBorder, setIsCustomBorder] = useState(false);
 
   useEffect(() => {
     // Initialize worker
@@ -624,6 +626,7 @@ export default function Home() {
                                 input.addEventListener('change', async (e) => {
                                   const target = e.target as HTMLInputElement;
                                   setBackgroundColor(target.value);
+                                  setIsCustomBackground(true);
                                   await handleEffectChange('background', true, { color: target.value, useOriginal: false });
                                   document.body.removeChild(input);
                                 });
@@ -645,10 +648,13 @@ export default function Home() {
                                 }, 100);
                               } else if (item.type === 'color') {
                                 setBackgroundColor(item.color!);
+                                setIsCustomBackground(false);
                                 await handleEffectChange('background', true, { color: item.color, useOriginal: false });
                               } else if (item.type === 'transparent') {
+                                setIsCustomBackground(false);
                                 handleEffectChange('background', false);
                               } else if (item.type === 'original') {
+                                setIsCustomBackground(false);
                                 await handleEffectChange('background', true, { useOriginal: true });
                               }
                             }}
@@ -659,7 +665,8 @@ export default function Home() {
                               ${item.border ? 'border-2 border-gray-300' : ''}
                               ${((item.type === 'color' && backgroundColor === item.color && effects.background.enabled && !effects.background.options?.useOriginal) || 
                                 (item.type === 'transparent' && !effects.background.enabled) ||
-                                (item.type === 'original' && effects.background.enabled && effects.background.options?.useOriginal))
+                                (item.type === 'original' && effects.background.enabled && effects.background.options?.useOriginal) ||
+                                (item.type === 'picker' && isCustomBackground && effects.background.enabled))
                                   ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''}`}
                             style={{
                               background: item.type === 'color' ? item.color : 
@@ -712,6 +719,7 @@ export default function Home() {
                                   key={color}
                                   onClick={async () => {
                                     setBorderColor(color);
+                                    setIsCustomBorder(false);
                                     await handleEffectChange('border', true, { borderColor: color });
                                   }}
                                   className={`w-8 h-8 rounded-full cursor-pointer transition-all
@@ -755,6 +763,7 @@ export default function Home() {
                                   input.addEventListener('change', async (e) => {
                                     const target = e.target as HTMLInputElement;
                                     setBorderColor(target.value);
+                                    setIsCustomBorder(true);
                                     await handleEffectChange('border', true, { borderColor: target.value });
                                     document.body.removeChild(input);
                                   });
@@ -775,7 +784,9 @@ export default function Home() {
                                     document.addEventListener('click', handleClickOutside);
                                   }, 100);
                                 }}
-                                className="w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110"
+                                className={`w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 ${
+                                  isCustomBorder ? 'ring-2 ring-offset-2 ring-[#4F46E5]' : ''
+                                }`}
                                 style={{ background: 'linear-gradient(45deg, #FF0000, #00FF00, #0000FF)' }}
                               />
                             </div>
