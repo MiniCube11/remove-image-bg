@@ -555,7 +555,7 @@ export default function Home() {
                 </div>
 
                 {/* Mobile Menu Overlay */}
-                <div className={`fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}
+                <div className={`fixed inset-0 bg-gray-300/30 z-40 md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}
                      onClick={() => setIsMenuOpen(false)}>
                 </div>
 
