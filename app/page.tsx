@@ -581,48 +581,54 @@ export default function Home() {
                       <div className="py-4">
                         <h3 className="text-[16px] font-semibold text-gray-900">Background</h3>
                         <div className="mt-4 flex flex-wrap gap-3">
-                          {[
+                          {([
                             { 
                               id: 'transparent',
-                              type: 'transparent',
+                              type: 'transparent' as const,
                               label: 'Transparent'
                             },
                             { 
                               id: 'original',
-                              type: 'original',
+                              type: 'original' as const,
                               label: 'Original Background'
                             },
                             { 
                               id: 'white',
-                              type: 'color',
+                              type: 'color' as const,
+                              label: 'White',
                               color: '#FFFFFF',
                               border: true
                             },
                             { 
                               id: 'black',
-                              type: 'color',
+                              type: 'color' as const,
+                              label: 'Black',
                               color: '#000000'
                             },
                             { 
                               id: 'brown',
-                              type: 'color',
+                              type: 'color' as const,
+                              label: 'Brown',
                               color: '#8B4513'
                             },
                             { 
                               id: 'navy',
-                              type: 'color',
+                              type: 'color' as const,
+                              label: 'Navy',
                               color: '#000080'
                             },
                             { 
                               id: 'peach',
-                              type: 'color',
+                              type: 'color' as const,
+                              label: 'Peach',
                               color: '#FFDAB9'
                             },
                             {
                               id: 'custom',
-                              type: 'picker'
+                              type: 'picker' as const,
+                              label: 'Custom Color'
                             }
-                          ].map((item) => (
+                          ] satisfies ColorOption[]).map((item) => (
                             <button
                               key={item.id}
                               onClick={async (e) => {
@@ -725,7 +731,7 @@ export default function Home() {
                           className="flex items-center justify-between w-full text-left"
                         >
                           <div className="flex items-center gap-2">
-                            <h3 className="text-[16px] font-semibold text-gray-900">Shadow</h3>
+                            <h3 className="text-[16px] font-semibold text-gray-900">Outline</h3>
                             <div className={`w-6 h-6 rounded-sm transition-opacity ${effects.border.enabled ? 'opacity-100' : 'opacity-0'}`}>
                               <svg className="text-[#4F46E5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -896,9 +902,12 @@ export default function Home() {
                 <div className="flex gap-3 mt-6">
                   <button
                     onClick={() => setIsMenuOpen(true)}
-                    className="px-6 py-2.5 bg-white text-[#4F46E5] border border-[#4F46E5] text-[14px] font-medium rounded-md hover:bg-[#F5F7FF] transition-colors md:hidden"
+                    className="px-4 py-2.5 bg-white text-[#4F46E5] border border-[#4F46E5] text-[14px] font-medium rounded-md hover:bg-[#F5F7FF] transition-colors md:hidden flex items-center gap-1.5"
                   >
                     Open Editor
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
                   </button>
                   <a
                     href={processedImage}
