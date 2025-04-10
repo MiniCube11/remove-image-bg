@@ -47,14 +47,14 @@ export default function Home() {
   const [processingStep, setProcessingStep] = useState<string>('');
   const [effects, setEffects] = useState<Effects>({
     background: { type: 'background', enabled: false, options: { color: '#ffffff' } },
-    border: { type: 'border', enabled: false, options: { borderColor: '#ffffff', borderSize: 40 } },
+    border: { type: 'border', enabled: false, options: { borderColor: '#FFD700', borderSize: 40 } },
     blur: { type: 'blur', enabled: false, options: { blur: 10 } },
     bw: { type: 'bw', enabled: false }
   });
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [blurIntensity, setBlurIntensity] = useState(10);
   const [borderSize, setBorderSize] = useState(40);
-  const [borderColor, setBorderColor] = useState('#ffffff');
+  const [borderColor, setBorderColor] = useState('#FFD700');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
   const colorChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -285,7 +285,9 @@ export default function Home() {
         enabled,
         options: {
           ...prev[effectType].options,
-          ...options
+          ...options,
+          // Set default yellow color when enabling border
+          ...(effectType === 'border' && enabled && !options?.borderColor && { borderColor: '#FFD700' })
         }
       }
     }));
@@ -297,7 +299,9 @@ export default function Home() {
         enabled,
         options: {
           ...effects[effectType].options,
-          ...options
+          ...options,
+          // Set default yellow color when enabling border
+          ...(effectType === 'border' && enabled && !options?.borderColor && { borderColor: '#FFD700' })
         }
       }
     });
