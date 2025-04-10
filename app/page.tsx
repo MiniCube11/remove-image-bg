@@ -2,9 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { removeBackground } from '@imgly/background-removal';
-
-type BackgroundOption = 'none' | 'blur' | 'bw' | 'color' | 'border';
 
 type ColorOption = {
   id: string;
@@ -311,32 +308,10 @@ export default function Home() {
     }
   }, [originalImage, processedImageNoBg, effects, applyBackgroundEffect]);
 
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newColor = e.target.value;
-    setBackgroundColor(newColor);
-    if (colorChangeTimeoutRef.current) {
-      clearTimeout(colorChangeTimeoutRef.current);
-    }
-    colorChangeTimeoutRef.current = setTimeout(() => {
-      handleEffectChange('background', true, { color: newColor });
-    }, 150);
-  };
-
   const handleBlurChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBlur = Number(e.target.value);
     setBlurIntensity(newBlur);
     handleEffectChange('blur', true, { blur: newBlur });
-  };
-
-  const handleBorderColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newColor = e.target.value;
-    setBorderColor(newColor);
-    if (borderChangeTimeoutRef.current) {
-      clearTimeout(borderChangeTimeoutRef.current);
-    }
-    borderChangeTimeoutRef.current = setTimeout(() => {
-      handleEffectChange('border', true, { borderColor: newColor });
-    }, 150);
   };
 
   const handleBorderSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
