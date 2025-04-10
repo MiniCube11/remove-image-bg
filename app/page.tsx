@@ -41,6 +41,7 @@ export default function Home() {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [processedImageNoBg, setProcessedImageNoBg] = useState<string | null>(null);
+  const [originalFilename, setOriginalFilename] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState<string>('');
@@ -379,6 +380,9 @@ export default function Home() {
       return;
     }
 
+    // Store original filename
+    setOriginalFilename(file.name);
+
     // Create URL for the original image
     const imageUrl = URL.createObjectURL(file);
     setOriginalImage(imageUrl);
@@ -406,6 +410,9 @@ export default function Home() {
       return;
     }
 
+    // Store original filename
+    setOriginalFilename(file.name);
+
     // Create URL for the original image
     const imageUrl = URL.createObjectURL(file);
     setOriginalImage(imageUrl);
@@ -430,7 +437,7 @@ export default function Home() {
           <span className="bg-gradient-to-r from-indigo-600 to-purple-500 text-transparent bg-clip-text">Remove  image backgrounds</span> in seconds
         </h1>
         <p className="text-center text-gray-600 mb-12 max-w-xl mx-auto">
-          Remove backgrounds in one click. Add stylish filters, borders, and more with our editor—100% free, no sign-up required.
+          Erase backgrounds from images. Add stylish filters, borders, and more with our editor. 100% free, no sign-up required.
         </p>
         
         <div className="flex flex-col items-center gap-12">
@@ -863,7 +870,7 @@ export default function Home() {
 
                 <a
                   href={processedImage}
-                  download="processed-image.png"
+                  download={originalFilename ? `${originalFilename.split('.')[0]}_removeimagebg.png` : 'processed-image.png'}
                   className="mt-6 px-6 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors"
                 >
                   Download
