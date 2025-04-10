@@ -98,14 +98,19 @@ export default function Home() {
       }
     };
 
+    // Store refs in variables for cleanup
+    const worker = workerRef.current;
+    const colorTimeout = colorChangeTimeoutRef.current;
+    const borderTimeout = borderChangeTimeoutRef.current;
+
     // Cleanup worker and timeouts on unmount
     return () => {
-      workerRef.current?.terminate();
-      if (colorChangeTimeoutRef.current) {
-        clearTimeout(colorChangeTimeoutRef.current);
+      worker?.terminate();
+      if (colorTimeout) {
+        clearTimeout(colorTimeout);
       }
-      if (borderChangeTimeoutRef.current) {
-        clearTimeout(borderChangeTimeoutRef.current);
+      if (borderTimeout) {
+        clearTimeout(borderTimeout);
       }
     };
   }, []);
