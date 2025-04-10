@@ -64,6 +64,7 @@ export default function Home() {
   const [showOriginal, setShowOriginal] = useState(false);
   const [isCustomBackground, setIsCustomBackground] = useState(false);
   const [isCustomBorder, setIsCustomBorder] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     // Initialize worker
@@ -553,8 +554,24 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="fixed right-0 top-0 h-screen w-[320px] bg-white shadow-lg overflow-y-auto">
+                {/* Mobile Menu Overlay */}
+                <div className={`fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}
+                     onClick={() => setIsMenuOpen(false)}>
+                </div>
+
+                {/* Sidebar Menu */}
+                <div className={`fixed right-0 top-0 h-screen w-[320px] bg-white shadow-lg overflow-y-auto z-50 transition-transform duration-300 ease-in-out
+                               ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 md:fixed md:right-0 md:top-0 md:h-screen md:w-[320px] md:mt-0`}>
                   <div className="p-4">
+                    <div className="flex justify-between items-center mb-4 md:hidden">
+                      <h2 className="text-lg font-semibold text-gray-900">Editor</h2>
+                      <button
+                        onClick={() => setIsMenuOpen(false)}
+                        className="px-4 py-2 text-[#4F46E5] border border-[#4F46E5] rounded-md hover:bg-[#F5F7FF] transition-colors"
+                      >
+                        Close Editor
+                      </button>
+                    </div>
                     {/* Background Section */}
                     <div className="border-b border-gray-300">
                       <div className="py-4">
@@ -872,13 +889,21 @@ export default function Home() {
                   </div>
                 </div>
 
-                <a
-                  href={processedImage}
-                  download={originalFilename ? `${originalFilename.split('.')[0]}_removeimagebg.png` : 'processed-image.png'}
-                  className="mt-6 px-6 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors"
-                >
-                  Download
-                </a>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setIsMenuOpen(true)}
+                    className="px-6 py-2.5 bg-white text-[#4F46E5] border border-[#4F46E5] text-[14px] font-medium rounded-md hover:bg-[#F5F7FF] transition-colors md:hidden"
+                  >
+                    Open Editor
+                  </button>
+                  <a
+                    href={processedImage}
+                    download={originalFilename ? `${originalFilename.split('.')[0]}_removeimagebg.png` : 'processed-image.png'}
+                    className="px-6 py-2.5 bg-[#4F46E5] text-[14px] font-medium text-white rounded-md hover:bg-[#4338CA] transition-colors"
+                  >
+                    Download
+                  </a>
+                </div>
               </div>
             </>
           )}
