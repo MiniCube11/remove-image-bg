@@ -75,9 +75,13 @@ export default function Home() {
       
       if (type === 'progress') {
         setProcessingProgress(progress);
-        if (progress < 30) {
-          setProcessingStep('Optimizing image...');
-        } else if (progress < 100) {
+        if (progress < 15) {
+          setProcessingStep('Loading image...');
+        } else if (progress < 30) {
+          setProcessingStep('Preparing image...');
+        } else if (progress < 50) {
+          setProcessingStep('Analyzing image...');
+        } else if (progress < 80) {
           setProcessingStep('Removing background...');
         } else {
           setProcessingStep('Finalizing...');
@@ -485,9 +489,9 @@ export default function Home() {
           {isProcessing && (
             <div className="text-center w-full">
               <p className="text-[16px] font-medium mb-3">{processingStep}</p>
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
+              <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden">
                 <div 
-                  className="bg-[#4F46E5] h-2 rounded-full transition-all duration-300" 
+                  className="bg-[#4F46E5] h-2 rounded-full transition-all duration-300 animate-pulse" 
                   style={{ width: `${processingProgress}%` }}
                 ></div>
               </div>
